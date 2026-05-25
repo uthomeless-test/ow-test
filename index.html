@@ -225,6 +225,7 @@
     <button class="nav-btn" onclick="showPage('cfg-rank',this)">ランクポイント</button>
     <button class="nav-btn" onclick="showPage('cfg-char',this)">キャラポイント</button>
     <button class="nav-btn" onclick="showPage('cfg-decay',this)">逓減率</button>
+    <button class="nav-btn" onclick="showPage('cfg-charmul',this)">キャラ環境補正</button>
     <button class="nav-btn" onclick="showPage('cfg-category',this)">カテゴリ Bonus</button>
     <div class="nav-section">データ</div>
     <button class="nav-btn" onclick="clearSave()" style="color:var(--danger)">🗑 保存データ削除</button>
@@ -302,6 +303,16 @@
       </div>
     </div>
 
+    <!-- Config: Char Multiplier -->
+    <div id="page-cfg-charmul" class="page">
+      <div class="page-title">キャラ環境補正</div>
+      <div class="page-sub">特定キャラのポイントに係数をかけます。デフォルト 1.0（変更なし）</div>
+      <div class="card section-gap">
+        <table><thead><tr><th>ロール</th><th>キャラ</th><th style="text-align:right">係数</th></tr></thead>
+        <tbody id="charmul-cfg-tbody"></tbody></table>
+      </div>
+    </div>
+
     <!-- Config: Category -->
     <div id="page-cfg-category" class="page">
       <div class="page-title">カテゴリ Bonus 設定</div>
@@ -376,6 +387,7 @@ const state = {
     {role:'サポート', name:'Poke',        chars:['バティスト'], bonus:40},
     {role:'サポート', name:'Utility',     chars:['ゼニヤッタ'], bonus:25}
   ],
+  charMultipliers: {},
   players: [],
   nextId: 0
 };
@@ -389,7 +401,11 @@ function calcRoleScore(p, role) {
   state.charPts.forEach(c => ptMap[c.rating] = c.pt);
   const chars = state.chars[role] || [];
   const rated = chars
-    .map(c => ({ pt: ptMap[p.ratings[c] || 1] || 0 }))
+    .map(c => {
+      const basePt = ptMap[p.ratings[c] || 1] || 0;
+      const mul = state.charMultipliers[c] !== undefined ? state.charMultipliers[c] : 1.0;
+      return { pt: Math.round(basePt * mul) };
+    })
     .filter(x => x.pt > 0)
     .sort((a, b) => b.pt - a.pt);
   let charPt = 0;
@@ -538,6 +554,7 @@ function renderPlayers() {
         '<input class="player-name-inp" type="text" value="' + p.name + '" placeholder="名前" oninput="updateName(' + p.id + ',this.value)" />' +
         '<span class="player-score-total">' + sc.total + '</span>' +
         '<button class="copy-btn" onclick="copyPlayerScore(' + p.id + ',this)" title="スコアをコピー">📋</button>' +
+        '<button class="copy-btn" onclick="showTextExport(' + p.id + ')" title="テキスト出力" style="margin-left:2px">📤</button>' +
         '<button class="btn btn-danger btn-sm" onclick="removePlayer(' + p.id + ')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
       '</div>' +
       '<div class="player-card-body">' +
@@ -602,6 +619,41 @@ function renderDecayCfg() {
       <td style="text-align:right"><input type="number" class="num-input" value="${d.rate}" min="0" max="2" step="0.05"
         onchange="state.decay[${i}].rate=+this.value;renderPlayers();renderSummary();saveState();" /></td>
     </tr>`).join('');
+}
+
+function renderCharMulCfg() {
+  const tbody = document.getElementById('charmul-cfg-tbody');
+  tbody.innerHTML = '';
+  ROLES.forEach(role => {
+    const chars = state.chars[role] || [];
+    chars.forEach((c, ci) => {
+      const mul = state.charMultipliers[c] !== undefined ? state.charMultipliers[c] : 1.0;
+      const isModified = mul !== 1.0;
+      const tr = document.createElement('tr');
+      if (isModified) tr.style.background = 'var(--warn-bg)';
+      const mulLabel = isModified ? ' <span style="font-size:10px;color:var(--warn);font-weight:600">x' + mul + '</span>' : '';
+      tr.innerHTML =
+        '<td style="font-size:12px;color:var(--text2)">' + (ci === 0 ? role : '') + '</td>' +
+        '<td>' + c + mulLabel + '</td>' +
+        '<td style="text-align:right"></td>';
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.className = 'num-input';
+      inp.value = mul; inp.min = 0; inp.max = 5; inp.step = '0.05';
+      inp.addEventListener('change', (function(charName){ return function(){ setCharMul(charName, +this.value); }; })(c));
+      tr.cells[2].appendChild(inp);
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function setCharMul(char, val) {
+  if (val === 1.0) {
+    delete state.charMultipliers[char];
+  } else {
+    state.charMultipliers[char] = val;
+  }
+  renderPlayers(); renderSummary(); saveState();
+  renderCharMulCfg();
 }
 
 function renderCatCfg() {
@@ -968,6 +1020,37 @@ function doImport() {
   document.getElementById('import-modal').classList.remove('open');
 }
 
+// ===== TEXT FORMAT (互換フォーマット) =====
+function formatPlayerText(p) {
+  const lines = [];
+  if (p.name && !p.name.startsWith('Player ')) lines.push('名前: ' + p.name);
+  ROLES.forEach(role => {
+    lines.push(role + ': ' + state.ranks[p.rankIdx[role]].label);
+  });
+  // キャラ評価（2以上のみ、ロール別に出力）
+  ROLES.forEach(role => {
+    const chars = state.chars[role] || [];
+    const rated = chars.filter(c => (p.ratings[c] || 1) >= 2);
+    if (rated.length) {
+      lines.push(rated.map(c => c + ': ' + p.ratings[c]).join('  '));
+    }
+  });
+  return lines.join('\n');
+}
+
+function showTextExport(id) {
+  const p = state.players.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('text-export-title').textContent = (p.name || 'プレイヤー') + ' — テキスト出力';
+  document.getElementById('text-export-area').value = formatPlayerText(p);
+  document.getElementById('text-export-modal').classList.add('open');
+}
+
+function copyTextExport(btn) {
+  const text = document.getElementById('text-export-area').value;
+  navigator.clipboard.writeText(text).then(() => flashCopied(btn));
+}
+
 // ===== COPY =====
 function formatPlayerScore(p) {
   const sc = calcAllScores(p);
@@ -1025,6 +1108,7 @@ function showPage(name, btn) {
   if (name==='cfg-rank')     renderRankCfg();
   if (name==='cfg-char')     renderCharCfg();
   if (name==='cfg-decay')    renderDecayCfg();
+  if (name==='cfg-charmul')  renderCharMulCfg();
   if (name==='cfg-category') renderCatCfg();
 }
 
@@ -1076,6 +1160,24 @@ if (loaded && state.players.length > 0) {
   addPlayer();
 }
 </script>
+  <!-- Text Export Modal -->
+  <div class="import-overlay" id="text-export-modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="import-modal">
+      <div class="import-modal-header">
+        <div class="import-modal-title" id="text-export-title">テキスト出力</div>
+        <button class="modal-close" onclick="document.getElementById('text-export-modal').classList.remove('open')">✕</button>
+      </div>
+      <div class="import-modal-body">
+        <div class="import-desc">このテキストをそのままインポートに貼り付けて再入力できます。</div>
+        <textarea class="import-textarea" id="text-export-area" readonly style="height:200px"></textarea>
+        <div class="import-footer">
+          <button class="btn" onclick="document.getElementById('text-export-modal').classList.remove('open')">閉じる</button>
+          <button class="btn btn-primary" onclick="copyTextExport(this)">📋 コピー</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Import Modal -->
   <div class="import-overlay" id="import-modal" onclick="closeImportOverlay(event)">
     <div class="import-modal">
@@ -1085,24 +1187,19 @@ if (loaded && state.players.length > 0) {
       </div>
       <div class="import-modal-body">
         <div class="import-desc">
-          以下の形式でテキストを貼り付けてください。<br>
-          名前・ロール別ランク・キャラ評価を自由な順で書けます。<br>
-          <code>名前: 田中</code> &nbsp;
-          <code>タンク: Gold 5</code> &nbsp;
-          <code>ダメージ: Platinum 1</code> &nbsp;
-          <code>サポート: Master 5</code><br>
-          キャラ評価: <code>アナ: 5</code> <code>キリコ:4</code> （スペース任意）<br>
-          キャラ名は略称・部分一致でも認識されます（例: <code>ジェトパク: 3</code> <code>ヴェン: 2</code>）
+          テキスト出力からコピーしたものをそのまま貼り付けられます。<br>
+          名前・ランクは省略可。評価2以上のキャラのみ書けばOKです。<br>
+          <code>タンク: Gold 5</code> &nbsp; <code>アナ: 5</code> <code>キリコ: 4</code><br>
+          キャラ名は略称・部分一致でも認識されます（例: <code>ヴェン: 2</code> <code>ソルジャー: 5</code>）
         </div>
-        <textarea class="import-textarea" id="import-text" placeholder="例:
+        <textarea class="import-textarea" id="import-text" placeholder="例（名前・ランクは省略可）:
 名前: 田中
-サポート: Master 5
-ダメージ: Gold 3
-タンク: Platinum 1
+タンク: Gold 5
+ダメージ: Master 5
+サポート: Platinum 3
 アナ: 5  キリコ: 5  バティスト: 4
-ルシオ: 3  ジュノ: 3  ブリギッテ: 3
 ゲンジ: 4  トレーサー: 3  リーパー: 4
-ソルジャー: 5  キャスディ: 4  ソジョーン: 4" oninput="previewImport()"></textarea>
+ソルジャー: 5  キャスディ: 4" oninput="previewImport()"></textarea>
         <div class="import-error" id="import-error"></div>
         <div class="import-preview" id="import-preview"></div>
         <div class="import-footer">
