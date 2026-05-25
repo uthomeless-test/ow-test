@@ -226,6 +226,8 @@
     <button class="nav-btn" onclick="showPage('cfg-char',this)">キャラポイント</button>
     <button class="nav-btn" onclick="showPage('cfg-decay',this)">逓減率</button>
     <button class="nav-btn" onclick="showPage('cfg-category',this)">カテゴリ Bonus</button>
+    <div class="nav-section">データ</div>
+    <button class="nav-btn" onclick="clearSave()" style="color:var(--danger)">🗑 保存データ削除</button>
   </nav>
 
   <main class="main">
@@ -421,27 +423,27 @@ function addPlayer() {
   Object.values(state.chars).flat().forEach(c => ratings[c] = 1);
   const rankIdx = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
   state.players.push({ id, name: 'Player ' + (id + 1), rankIdx, ratings });
-  renderPlayers(); renderSummary();
+  renderPlayers(); renderSummary(); saveState();
 }
 
 function removePlayer(id) {
   state.players = state.players.filter(p => p.id !== id);
-  renderPlayers(); renderSummary();
+  renderPlayers(); renderSummary(); saveState();
 }
 
 function updateName(id, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.name = val; renderSummary(); }
+  if (p) { p.name = val; renderSummary(); saveState(); }
 }
 
 function updateRank(id, role, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); }
+  if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); saveState(); }
 }
 
 function updateRating(id, char, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.ratings[char] = val; renderPlayers(); renderSummary(); }
+  if (p) { p.ratings[char] = val; renderPlayers(); renderSummary(); saveState(); }
 }
 
 const ROLE_STYLE = {
@@ -578,7 +580,7 @@ function renderRankCfg() {
   document.getElementById('rank-cfg-tbody').innerHTML = state.ranks.map((r,i)=>`
     <tr><td>${r.label}</td>
     <td style="text-align:right"><input type="number" class="num-input" value="${r.pt}" min="0"
-      onchange="state.ranks[${i}].pt=+this.value;renderPlayers();renderSummary();" /></td></tr>
+      onchange="state.ranks[${i}].pt=+this.value;renderPlayers();renderSummary();saveState();" /></td></tr>
   `).join('');
 }
 
@@ -588,7 +590,7 @@ function renderCharCfg() {
       <td><span class="badge badge-blue">${c.rating}</span></td>
       <td style="color:var(--text2)">${c.label}</td>
       <td style="text-align:right"><input type="number" class="num-input" value="${c.pt}" min="0"
-        onchange="state.charPts[${i}].pt=+this.value;renderPlayers();renderSummary();" /></td>
+        onchange="state.charPts[${i}].pt=+this.value;renderPlayers();renderSummary();saveState();" /></td>
     </tr>`).join('');
 }
 
@@ -598,7 +600,7 @@ function renderDecayCfg() {
       <td class="decay-pos">${i+1}</td>
       <td style="color:var(--text2)">${d.pos}</td>
       <td style="text-align:right"><input type="number" class="num-input" value="${d.rate}" min="0" max="2" step="0.05"
-        onchange="state.decay[${i}].rate=+this.value;renderPlayers();renderSummary();" /></td>
+        onchange="state.decay[${i}].rate=+this.value;renderPlayers();renderSummary();saveState();" /></td>
     </tr>`).join('');
 }
 
@@ -615,7 +617,7 @@ function renderCatCfg() {
         '<td><span style="font-size:12px;color:var(--text2)">' + cat.name + '</span></td>' +
         '<td style="font-size:11px;color:var(--text3)">' + cat.chars.join(', ') + '</td>' +
         '<td style="text-align:right"><input type="number" class="num-input" value="' + cat.bonus + '" min="0"' +
-          ' onchange="state.categories[' + gi + '].bonus=+this.value;renderPlayers();renderSummary();" /></td>' +
+          ' onchange="state.categories[' + gi + '].bonus=+this.value;renderPlayers();renderSummary();saveState();" /></td>' +
         '</tr>';
     });
   });
@@ -667,7 +669,7 @@ function catDrop(e, catIdx, role) {
   if (!cat.chars.includes(dragChar)) {
     cat.chars.push(dragChar);
   }
-  renderPlayers(); renderSummary();
+  renderPlayers(); renderSummary(); saveState();
 }
 
 function catDropOther(e, role) {
@@ -678,7 +680,7 @@ function catDropOther(e, role) {
   state.categories.filter(c => c.role === role).forEach(cat => {
     cat.chars = cat.chars.filter(c => c !== dragChar);
   });
-  renderPlayers(); renderSummary();
+  renderPlayers(); renderSummary(); saveState();
 }
 
 // ===== DETAIL MODAL =====
@@ -962,7 +964,7 @@ function doImport() {
     rankIdx: parsed.rankIdx,
     ratings: parsed.ratings
   });
-  renderPlayers(); renderSummary();
+  renderPlayers(); renderSummary(); saveState();
   document.getElementById('import-modal').classList.remove('open');
 }
 
@@ -1026,8 +1028,53 @@ function showPage(name, btn) {
   if (name==='cfg-category') renderCatCfg();
 }
 
-addPlayer();
-addPlayer();
+// ===== PERSIST =====
+const SAVE_KEY = 'ow_match_v1';
+
+function saveState() {
+  try {
+    const data = {
+      players: state.players,
+      nextId: state.nextId,
+      categories: state.categories,
+      ranks: state.ranks,
+      charPts: state.charPts,
+      decay: state.decay
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.players)    state.players    = data.players;
+    if (data.nextId)     state.nextId     = data.nextId;
+    if (data.categories) state.categories = data.categories;
+    if (data.ranks)      state.ranks      = data.ranks;
+    if (data.charPts)    state.charPts    = data.charPts;
+    if (data.decay)      state.decay      = data.decay;
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearSave() {
+  if (!confirm('保存データを全て削除しますか？')) return;
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+}
+
+// Init
+const loaded = loadState();
+if (loaded && state.players.length > 0) {
+  renderPlayers();
+  renderSummary();
+} else {
+  addPlayer();
+  addPlayer();
+}
 </script>
   <!-- Import Modal -->
   <div class="import-overlay" id="import-modal" onclick="closeImportOverlay(event)">
