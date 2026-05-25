@@ -102,6 +102,12 @@
   .player-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
   .player-name-inp { background: none; border: none; color: var(--text); font-size: 14px; font-weight: 700; flex: 1; outline: none; min-width: 80px; }
   .player-name-inp::placeholder { color: var(--text3); font-weight: 400; }
+  .player-name-display { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; cursor: pointer; min-width: 80px; display: flex; align-items: center; gap: 5px; }
+  .player-name-display:hover .edit-icon { opacity: 1; }
+  .edit-icon { font-size: 11px; color: var(--text3); opacity: 0; transition: opacity 0.15s; }
+  .player-name-edit { display: none; flex: 1; }
+  .player-name-edit.active { display: block; }
+  .player-name-display.hidden { display: none; }
   .player-score-total { font-size: 17px; font-weight: 700; color: var(--accent); margin-left: auto; white-space: nowrap; }
   .player-card-body { padding: 12px 14px; }
 
@@ -155,9 +161,13 @@
   .drag-handle { color: var(--text3); font-size: 11px; flex-shrink: 0; user-select: none; }
   .char-name { font-size: 12px; color: var(--text2); width: 108px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rating-btns { display: flex; gap: 2px; }
-  .r-btn { width: 24px; height: 20px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.1s; }
+  .r-btn { width: 24px; height: 20px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.1s; position: relative; }
   .r-btn:hover { border-color: var(--accent); color: var(--accent); }
   .r-btn.on { background: var(--accent-light); border-color: rgba(37,99,235,0.35); color: var(--accent); }
+  .rating-legend { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px 8px; background: var(--bg3); border-radius: var(--radius); }
+  .legend-item { font-size: 10px; color: var(--text2); display: flex; align-items: center; gap: 3px; }
+  .legend-num { font-weight: 700; color: var(--text); background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+  .legend-sep { color: var(--text3); margin: 0 2px; }
   .cat-drop-hint { font-size: 10px; color: var(--text3); font-style: italic; padding: 2px 0; }
 
   /* Summary */
@@ -206,6 +216,25 @@
   .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
   .spacer { flex: 1; }
 
+  /* Howto page */
+  .howto-section { margin-bottom: 2rem; }
+  .howto-section h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+  .howto-section p { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 0.5rem; }
+  .howto-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 0.5rem; }
+  .howto-step { display: flex; gap: 12px; align-items: flex-start; }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .step-body strong { color: var(--text); font-weight: 600; }
+  .howto-btn-demo { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); vertical-align: middle; margin: 0 2px; }
+  .howto-btn-demo.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .howto-btn-demo.danger { background: var(--danger-bg); border-color: #fecaca; color: var(--danger); }
+  .howto-note { font-size: 12px; color: var(--text3); background: var(--bg3); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 8px 12px; margin-top: 8px; line-height: 1.6; }
+  .howto-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  .howto-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  .howto-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+  .howto-table td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
+  .howto-table tr:last-child td { border-bottom: none; }
+
   @media (max-width: 720px) {
     .app { grid-template-columns: 1fr; }
     .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
@@ -219,6 +248,7 @@
   <nav class="sidebar">
     <div class="logo">⚔ OW Match</div>
     <div class="nav-section">メイン</div>
+    <button class="nav-btn" onclick="showPage('howto',this)">📖 使い方</button>
     <button class="nav-btn active" onclick="showPage('players',this)">プレイヤー入力</button>
     <button class="nav-btn" onclick="showPage('summary',this)">スコア比較</button>
     <div class="nav-section">設定</div>
@@ -321,6 +351,108 @@
         <table><thead><tr><th>ロール</th><th>カテゴリ</th><th>対象キャラ</th><th style="text-align:right">Bonus</th></tr></thead>
         <tbody id="cat-cfg-tbody"></tbody></table>
       </div>
+    </div>
+
+    <!-- Howto -->
+    <div id="page-howto" class="page">
+      <div class="page-title">📖 使い方</div>
+      <div class="page-sub">OW カスタムマッチ 強さ計算ツールの操作説明</div>
+
+      <div class="card howto-section">
+        <h3>🎯 このツールについて</h3>
+        <p>プレイヤーのランクとキャラクター習熟度からスコアを算出し、カスタムマッチのチーム分けを均等にするためのツールです。</p>
+        <p>スコアは <strong>ランクポイント + キャラポイント（逓減込み）+ カテゴリBonus</strong> の合計で計算されます。</p>
+      </div>
+
+      <div class="card howto-section">
+        <h3>👤 プレイヤーの追加・入力</h3>
+        <div class="howto-steps">
+          <div class="howto-step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>「＋ プレイヤー追加」</strong>ボタンでカードを追加します。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">2</div>
+            <div class="step-body">名前をクリックすると編集できます。確定は <strong>Enter</strong> または外側をクリック。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>タンク・ダメージ・サポート</strong>それぞれのランクをプルダウンで選択してください。ロールによってランクが違う場合も個別に設定できます。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">4</div>
+            <div class="step-body">各キャラクターの評価を <strong>1〜5</strong> で入力します。</div>
+          </div>
+        </div>
+        <table class="howto-table" style="margin-top:12px">
+          <thead><tr><th>評価</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>出さない（デフォルト、入力不要）</td></tr>
+            <tr><td>2</td><td>状況限定で出す</td></tr>
+            <tr><td>3</td><td>状況次第で積極採用</td></tr>
+            <tr><td>4</td><td>よく使う</td></tr>
+            <tr><td>5</td><td>メインピック</td></tr>
+          </tbody>
+        </table>
+        <div class="howto-note">評価1のキャラはポイントに影響しません。よく使うキャラのみ入力すればOKです。</div>
+      </div>
+
+      <div class="card howto-section">
+        <h3>📋 テキストから追加</h3>
+        <p>「📋 テキストから追加」ボタンを使うと、テキストを貼り付けてプレイヤーを一括入力できます。</p>
+        <p>フォーマット例：</p>
+        <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-family:monospace;font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.8">
+          名前: 田中<br>
+          タンク: Gold 5<br>
+          ダメージ: Master 5<br>
+          サポート: Platinum 3<br>
+          アナ: 5　キリコ: 5　バティスト: 4<br>
+          ゲンジ: 4　トレーサー: 3
+        </div>
+        <div class="howto-note">名前・ランクは省略可能。評価2以上のキャラのみ書けばOKです。キャラ名は略称でも認識されます（例: ソルジャー: 5、ヴェン: 2）。</div>
+      </div>
+
+      <div class="card howto-section">
+        <h3>📤 テキスト出力とコピーボタンの使い方</h3>
+        <p>プレイヤーカードのヘッダーには3つのボタンがあります：</p>
+        <div class="howto-steps">
+          <div class="howto-step">
+            <div class="step-num" style="background:var(--text2)">📋</div>
+            <div class="step-body"><strong>スコアコピー</strong>：計算後のスコア（タンク/ダメージ/サポート/総合）をクリップボードにコピーします。Discordや他のテキストに貼り付けて共有するのに使います。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num" style="background:var(--text2)">📤</div>
+            <div class="step-body"><strong>テキスト出力</strong>：入力内容（ランク・キャラ評価）をテキスト形式で表示します。このテキストは「テキストから追加」にそのまま貼り付けて再インポートできます。次回セッションへの引き継ぎや他の人への共有に使います。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num" style="background:var(--danger)">✕</div>
+            <div class="step-body"><strong>削除</strong>：そのプレイヤーのカードを削除します。</div>
+          </div>
+        </div>
+        <div class="howto-note">入力データはブラウザに自動保存されます。次回同じブラウザで開くと自動で復元されます。</div>
+      </div>
+
+      <div class="card howto-section">
+        <h3>📊 スコア比較</h3>
+        <p>「スコア比較」ページで全プレイヤーのスコアを一覧できます。</p>
+        <p><strong>「📋 全員コピー」</strong>ボタンで全員のスコアを表形式でコピーできます。Discordに貼り付けてチーム分けの参考にしてください。</p>
+        <p>各ロールのスコアセルにある<strong>「詳細」</strong>ボタンを押すと、ランクPt・キャラPt・カテゴリBonusの内訳を確認できます。</p>
+      </div>
+
+      <div class="card howto-section">
+        <h3>⚙️ 設定について</h3>
+        <table class="howto-table">
+          <thead><tr><th>設定項目</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>ランクポイント</td><td>各ランクに対応するポイント値。上位帯ほど差が大きい指数型になっています。</td></tr>
+            <tr><td>キャラポイント</td><td>評価1〜5に対応するポイント値。</td></tr>
+            <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「広く浅い」より「狭く深い」が有利になるよう設計されています。</td></tr>
+            <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど、環境に合わせて調整できます。デフォルト1.0。</td></tr>
+            <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価4以上のキャラが1体以上いる場合に加算。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
     </div>
 
   </main>
@@ -452,6 +584,27 @@ function updateName(id, val) {
   if (p) { p.name = val; renderSummary(); saveState(); }
 }
 
+function startEditName(id) {
+  const disp = document.getElementById('name-display-' + id);
+  const inp  = document.getElementById('name-input-' + id);
+  if (!disp || !inp) return;
+  disp.classList.add('hidden');
+  inp.classList.add('active');
+  inp.focus();
+  inp.select();
+}
+
+function endEditName(id) {
+  const disp = document.getElementById('name-display-' + id);
+  const inp  = document.getElementById('name-input-' + id);
+  if (!disp || !inp) return;
+  inp.classList.remove('active');
+  disp.classList.remove('hidden');
+  // Update display text
+  const p = state.players.find(p => p.id === id);
+  if (p) disp.childNodes[0].textContent = p.name;
+}
+
 function updateRank(id, role, val) {
   const p = state.players.find(p => p.id === id);
   if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); saveState(); }
@@ -502,6 +655,19 @@ function renderPlayers() {
         '</div>';
     }).join('');
 
+    // 評価凡例
+    const legendHtml = '<div class="rating-legend">' +
+      '<span class="legend-item"><span class="legend-num">1</span>出さない</span>' +
+      '<span class="legend-sep">·</span>' +
+      '<span class="legend-item"><span class="legend-num">2</span>状況限定</span>' +
+      '<span class="legend-sep">·</span>' +
+      '<span class="legend-item"><span class="legend-num">3</span>状況次第で採用</span>' +
+      '<span class="legend-sep">·</span>' +
+      '<span class="legend-item"><span class="legend-num">4</span>よく使う</span>' +
+      '<span class="legend-sep">·</span>' +
+      '<span class="legend-item"><span class="legend-num">5</span>メインピック</span>' +
+      '</div>';
+
     // キャラ評価（ロール→カテゴリ→キャラ）
     const charHtml = ROLES.map(role => {
       const st = ROLE_STYLE[role];
@@ -551,7 +717,12 @@ function renderPlayers() {
     card.innerHTML =
       '<div class="player-card-header">' +
         '<div class="player-avatar">' + initials + '</div>' +
-        '<input class="player-name-inp" type="text" value="' + p.name + '" placeholder="名前" oninput="updateName(' + p.id + ',this.value)" />' +
+        '<span class="player-name-display" id="name-display-' + p.id + '" onclick="startEditName(' + p.id + ')">' +
+          p.name + '<span class="edit-icon">✏</span></span>' +
+        '<input class="player-name-inp player-name-edit" id="name-input-' + p.id + '" type="text" value="' + p.name + '" placeholder="名前"' +
+          ' data-pid="' + p.id + '"' +
+          ' oninput="updateName(' + p.id + ',this.value)"' +
+          ' onblur="endEditName(' + p.id + ')" />' +
         '<span class="player-score-total">' + sc.total + '</span>' +
         '<button class="copy-btn" onclick="copyPlayerScore(' + p.id + ',this)" title="スコアをコピー">📋</button>' +
         '<button class="copy-btn" onclick="showTextExport(' + p.id + ')" title="テキスト出力" style="margin-left:2px">📤</button>' +
@@ -561,6 +732,7 @@ function renderPlayers() {
         '<div class="role-ranks">' + rankSelHtml + '</div>' +
         '<div class="role-scores">' + roleScoreHtml + '</div>' +
         '<div class="score-chips"><span class="chip chip-total">総合 ' + sc.total + '</span></div>' +
+        legendHtml +
         charHtml +
       '</div>';
     grid.appendChild(card);
@@ -675,6 +847,14 @@ function renderCatCfg() {
   });
   document.getElementById('cat-cfg-tbody').innerHTML = html;
 }
+
+// Handle Enter/Escape on name inputs
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === 'Escape') {
+    const inp = e.target.closest('.player-name-edit');
+    if (inp && inp.dataset.pid) endEditName(+inp.dataset.pid);
+  }
+});
 
 // ===== DRAG & DROP =====
 let dragChar = null;
