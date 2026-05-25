@@ -346,7 +346,7 @@
     <!-- Config: Category -->
     <div id="page-cfg-category" class="page">
       <div class="page-title">カテゴリ Bonus 設定</div>
-      <div class="page-sub">カテゴリ内に評価4以上のキャラが1体以上いる場合に加算されます</div>
+      <div class="page-sub">カテゴリ内に評価3以上のキャラが1体以上いる場合に加算されます</div>
       <div class="card section-gap">
         <table><thead><tr><th>ロール</th><th>カテゴリ</th><th>対象キャラ</th><th style="text-align:right">Bonus</th></tr></thead>
         <tbody id="cat-cfg-tbody"></tbody></table>
@@ -448,7 +448,7 @@
             <tr><td>キャラポイント</td><td>評価1〜5に対応するポイント値。</td></tr>
             <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「広く浅い」より「狭く深い」が有利になるよう設計されています。</td></tr>
             <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど、環境に合わせて調整できます。デフォルト1.0。</td></tr>
-            <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価4以上のキャラが1体以上いる場合に加算。</td></tr>
+            <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価3以上のキャラが1体以上いる場合に加算。</td></tr>
           </tbody>
         </table>
       </div>
@@ -475,7 +475,7 @@ const state = {
   charPts: [
     {rating:1,label:'出さない',pt:0},
     {rating:2,label:'状況限定',pt:5},
-    {rating:3,label:'状況次第で採用',pt:15},
+    {rating:3,label:'状況次第で採用',pt:10},
     {rating:4,label:'よく使う',pt:30},
     {rating:5,label:'メインピック',pt:50}
   ],
@@ -551,7 +551,7 @@ function calcRoleScore(p, role) {
   state.categories.filter(c => c.role === role).forEach(cat => {
     const key = cat.name;
     if (applied.has(key)) return;
-    if (cat.chars.some(c => (p.ratings[c] || 1) >= 4)) { catBonus += cat.bonus; applied.add(key); }
+    if (cat.chars.some(c => (p.ratings[c] || 1) >= 3)) { catBonus += cat.bonus; applied.add(key); }
   });
   return { rankPt, charPt, catBonus, total: rankPt + charPt + catBonus };
 }
@@ -947,7 +947,7 @@ function buildDetailHtml(p, role) {
   const appliedKeys = new Set();
   roleCats.forEach(cat => {
     if (appliedKeys.has(cat.name)) return;
-    const qualChars = cat.chars.filter(c => (p.ratings[c] || 1) >= 4);
+    const qualChars = cat.chars.filter(c => (p.ratings[c] || 1) >= 3);
     if (qualChars.length > 0) {
       appliedCats.push({ name: cat.name, bonus: cat.bonus, chars: qualChars });
       appliedKeys.add(cat.name);
@@ -977,7 +977,7 @@ function buildDetailHtml(p, role) {
     ${appliedCats.length ? (
       '<div class="detail-section">' +
       '<div class="detail-section-title">カテゴリ Bonus（合計: +' + catTotal + '）</div>' +
-      '<div class="detail-formula">カテゴリ内に評価4以上のキャラが1体以上いる場合に加算</div>' +
+      '<div class="detail-formula">カテゴリ内に評価3以上のキャラが1体以上いる場合に加算</div>' +
       appliedCats.map(c =>
         '<div class="detail-row cat-bonus-row">' +
         '<span class="detail-row-name">' + c.name + ' <span style="font-size:10px;color:var(--text3)">（' + c.chars.join('・') + '）</span></span>' +
