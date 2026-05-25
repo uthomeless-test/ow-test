@@ -75,6 +75,25 @@
   .btn-danger { background: var(--danger-bg); border-color: #fecaca; color: var(--danger); box-shadow: none; }
   .btn-danger:hover { background: #fee2e2; }
   .btn-sm { padding: 4px 9px; font-size: 12px; }
+  .copy-btn { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 3px; }
+  .copy-btn:hover { background: var(--accent-light); color: var(--accent); border-color: rgba(37,99,235,0.3); }
+  .copy-btn.copied { background: var(--success-bg); color: var(--success); border-color: rgba(22,163,74,0.3); }
+
+  /* Import modal */
+  .import-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; align-items: flex-start; justify-content: center; padding-top: 80px; }
+  .import-overlay.open { display: flex; }
+  .import-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 520px; max-width: 95vw; }
+  .import-modal-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .import-modal-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+  .import-modal-body { padding: 16px; }
+  .import-desc { font-size: 12px; color: var(--text2); margin-bottom: 10px; line-height: 1.6; }
+  .import-desc code { background: var(--bg3); padding: 1px 5px; border-radius: 4px; font-size: 11px; font-family: monospace; }
+  .import-textarea { width: 100%; height: 160px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 12px; font-family: monospace; padding: 8px 10px; resize: vertical; line-height: 1.5; }
+  .import-textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .import-error { font-size: 12px; color: var(--danger); margin-top: 6px; min-height: 18px; }
+  .import-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  .import-preview { font-size: 12px; color: var(--text2); margin-top: 8px; background: var(--bg3); border-radius: var(--radius); padding: 8px 10px; display: none; }
+  .import-preview.show { display: block; }
 
   /* Player card */
   .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
@@ -123,16 +142,22 @@
   .rl-dps  { background: var(--dps-bg);  color: var(--dps-color); }
   .rl-sup  { background: var(--sup-bg);  color: var(--sup-color); }
   .cat-blocks { display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
-  .cat-block { border-left: 2px solid var(--border); padding-left: 8px; }
-  .cat-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.4px; margin-bottom: 4px; }
+  .cat-block { border-left: 2px solid var(--border); padding-left: 8px; border-radius: 0 4px 4px 0; transition: border-color 0.15s, background 0.15s; }
+  .cat-block.drag-over { border-color: var(--accent); background: var(--accent-light); }
+  .cat-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.4px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
   .cat-other { font-style: italic; }
-  .char-list { display: flex; flex-direction: column; gap: 3px; }
-  .char-row { display: flex; align-items: center; gap: 6px; }
-  .char-name { font-size: 12px; color: var(--text2); width: 115px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .char-list { display: flex; flex-direction: column; gap: 3px; min-height: 8px; }
+  .char-row { display: flex; align-items: center; gap: 5px; }
+  .char-row.from-other { cursor: grab; }
+  .char-row.from-other:active { cursor: grabbing; opacity: 0.5; }
+  .char-row.dragging { opacity: 0.3; }
+  .drag-handle { color: var(--text3); font-size: 11px; flex-shrink: 0; user-select: none; }
+  .char-name { font-size: 12px; color: var(--text2); width: 108px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rating-btns { display: flex; gap: 2px; }
   .r-btn { width: 24px; height: 20px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.1s; }
   .r-btn:hover { border-color: var(--accent); color: var(--accent); }
   .r-btn.on { background: var(--accent-light); border-color: rgba(37,99,235,0.35); color: var(--accent); }
+  .cat-drop-hint { font-size: 10px; color: var(--text3); font-style: italic; padding: 2px 0; }
 
   /* Summary */
   .role-score-cell { font-weight: 700; }
@@ -144,6 +169,34 @@
   .diff-ok   { background: var(--success-bg); color: var(--success); }
   .diff-warn { background: var(--warn-bg); color: var(--warn); }
   .diff-bad  { background: var(--danger-bg); color: var(--danger); }
+
+  /* Detail modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 480px; max-width: 95vw; max-height: 85vh; display: flex; flex-direction: column; }
+  .modal-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+  .modal-close { background: none; border: none; font-size: 18px; color: var(--text3); cursor: pointer; padding: 0 4px; line-height: 1; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 16px; overflow-y: auto; }
+  .detail-section { margin-bottom: 16px; }
+  .detail-section-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-formula { font-size: 13px; color: var(--text2); background: var(--bg3); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 8px; font-family: monospace; }
+  .detail-formula span { color: var(--accent); font-weight: 600; }
+  .detail-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row-name { color: var(--text2); }
+  .detail-row-val { color: var(--text); font-weight: 600; font-family: monospace; }
+  .detail-row-val .muted { font-weight: 400; color: var(--text3); }
+  .detail-total-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 700; padding: 8px 0 0; margin-top: 4px; border-top: 1px solid var(--border); }
+  .detail-btn { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); cursor: pointer; transition: all 0.1s; }
+  .detail-btn:hover { background: var(--accent-light); color: var(--accent); border-color: rgba(37,99,235,0.3); }
+  .detail-btn-tank { color: var(--tank-color); background: var(--tank-bg); border-color: rgba(124,58,237,0.2); }
+  .detail-btn-dps  { color: var(--dps-color);  background: var(--dps-bg);  border-color: rgba(220,38,38,0.2); }
+  .detail-btn-sup  { color: var(--sup-color);  background: var(--sup-bg);  border-color: rgba(8,145,178,0.2); }
+  .cat-bonus-row { background: var(--success-bg); }
+  .cat-bonus-row .detail-row-name { color: var(--success); }
+  .cat-bonus-row .detail-row-val { color: var(--success); }
 
   .page { display: none; }
   .page.active { display: block; }
@@ -184,6 +237,7 @@
           <div class="page-sub">ロール別にランクとキャラ評価を入力してください</div>
         </div>
         <div class="spacer"></div>
+        <button class="btn" onclick="openImport()">📋 テキストから追加</button>
         <button class="btn btn-primary" onclick="addPlayer()">＋ プレイヤー追加</button>
       </div>
       <div class="player-grid" id="player-grid"></div>
@@ -191,8 +245,14 @@
 
     <!-- Summary -->
     <div id="page-summary" class="page">
-      <div class="page-title">スコア比較</div>
-      <div class="page-sub">全プレイヤーのロール別スコア一覧（総合順）</div>
+      <div class="top-bar" style="margin-bottom:0.75rem">
+        <div>
+          <div class="page-title">スコア比較</div>
+          <div class="page-sub" style="margin-bottom:0">全プレイヤーのロール別スコア一覧（総合順）</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="copy-btn" onclick="copyAllScores(this)" style="font-size:12px;padding:6px 12px;">📋 全員コピー</button>
+      </div>
       <div class="card section-gap">
         <table>
           <thead>
@@ -285,16 +345,17 @@ const state = {
       'アッシュ','ウィドウメイカー','エコー','キャスディ','ゲンジ','シンメトラ',
       'ジャンクラット','ソジョーン','ソルジャー76','ソンブラ','トールビョーン',
       'トレーサー','ハンゾー','バスティオン','ファラ','ベンチャー','メイ',
-      'リーパー','フレイヤ','ヴェンデッタ'
+      'リーパー','フレイヤ','ヴェンデッタ','アンラン','エムレ','シエラ'
     ],
     'タンク': [
       'ハザード','D.Va','ウィンストン','オリーサ','ザリア','シグマ',
       'ジャンカー・クイーン','ドゥームフィスト','マウガ','ラインハルト',
-      'ラマットラ','レッキング・ボール','ロードホッグ'
+      'ラマットラ','レッキング・ボール','ロードホッグ','ドミナ'
     ],
     'サポート': [
       'アナ','イラリー','キリコ','ジュノ','ゼニヤッタ','バティスト',
-      'ブリギッテ','マーシー','モイラ','ライフウィーバー','ルシオ','ウーヤン'
+      'ブリギッテ','マーシー','モイラ','ライフウィーバー','ルシオ','ウーヤン',
+      'ジェットパック・キャット','ミズキ'
     ]
   },
   categories: [
@@ -403,85 +464,87 @@ function renderPlayers() {
     // ロール別ランク選択
     const rankSelHtml = ROLES.map(role => {
       const st = ROLE_STYLE[role];
-      return `<div class="role-rank-block">
-        <div class="role-rank-label ${st.labelCls}">${role}</div>
-        <select class="rank-sel" onchange="updateRank(${p.id},'${role}',this.value)">
-          ${state.ranks.map((r,i)=>`<option value="${i}"${i===p.rankIdx[role]?' selected':''}>${r.label}</option>`).join('')}
-        </select>
-      </div>`;
+      const opts = state.ranks.map((r,i) => '<option value="' + i + '"' + (i===p.rankIdx[role]?' selected':'') + '>' + r.label + '</option>').join('');
+      return '<div class="role-rank-block">' +
+        '<div class="role-rank-label ' + st.labelCls + '">' + role + '</div>' +
+        '<select class="rank-sel" onchange="updateRank(' + p.id + ',\'' + role + '\',this.value)">' + opts + '</select>' +
+        '</div>';
     }).join('');
 
     // ロール別スコアボックス
     const roleScoreHtml = [
-      { role:'タンク',   sc: sc.tank, cls:'rsb-tank' },
-      { role:'ダメージ', sc: sc.dps,  cls:'rsb-dps'  },
-      { role:'サポート', sc: sc.sup,  cls:'rsb-sup'  }
-    ].map(x => `
-      <div class="role-score-box ${x.cls}">
-        <div class="rsb-label">${x.role}</div>
-        <div class="rsb-val">${x.sc.total}</div>
-        <div class="rsb-detail">${x.sc.rankPt} + ${x.sc.charPt}${x.sc.catBonus>0?' +'+x.sc.catBonus:''}</div>
-      </div>`).join('');
+      { role:'タンク',   sc: sc.tank, cls:'rsb-tank', btnCls:'detail-btn-tank' },
+      { role:'ダメージ', sc: sc.dps,  cls:'rsb-dps',  btnCls:'detail-btn-dps'  },
+      { role:'サポート', sc: sc.sup,  cls:'rsb-sup',  btnCls:'detail-btn-sup'  }
+    ].map(x => {
+      const catStr = x.sc.catBonus > 0 ? ' +' + x.sc.catBonus : '';
+      return '<div class="role-score-box ' + x.cls + '" style="position:relative">' +
+        '<div class="rsb-label">' + x.role + '</div>' +
+        '<div class="rsb-val">' + x.sc.total + '</div>' +
+        '<div class="rsb-detail">' + x.sc.rankPt + ' + ' + x.sc.charPt + catStr + '</div>' +
+        '<button class="detail-btn ' + x.btnCls + '" style="margin-top:4px" onclick="showDetail(' + p.id + ',&apos;' + x.role + '&apos;)">詳細</button>' +
+        '</div>';
+    }).join('');
 
     // キャラ評価（ロール→カテゴリ→キャラ）
     const charHtml = ROLES.map(role => {
       const st = ROLE_STYLE[role];
       const allChars = state.chars[role];
-      // カテゴリごとにグループ化
       const roleCats = state.categories.filter(c => c.role === role);
-      // 各カテゴリに属するキャラを収集（重複可なので表示済みは除外しない）
-      const catGroups = roleCats.map(cat => ({ name: cat.name, chars: cat.chars.filter(c => allChars.includes(c)) }));
-      // どのカテゴリにも属さないキャラ
+      const catGroups = roleCats.map(cat => ({ name: cat.name, catObj: cat, chars: cat.chars.filter(c => allChars.includes(c)) }));
       const categorized = new Set(roleCats.flatMap(c => c.chars));
       const others = allChars.filter(c => !categorized.has(c));
 
-      const catHtml = catGroups.map(cat => `
-        <div class="cat-block">
-          <div class="cat-label">${cat.name}</div>
-          <div class="char-list">
-            ${cat.chars.map(c => {
-              const rating = p.ratings[c] || 1;
-              return `<div class="char-row">
-                <span class="char-name" title="${c}">${c}</span>
-                <div class="rating-btns">${[1,2,3,4,5].map(v=>`<button class="r-btn${rating>=v?' on':''}" onclick="updateRating(${p.id},'${c.replace(/'/g,"\\'")}',${v})">${v}</button>`).join('')}</div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>`).join('');
+      const makeCharRow = (c, fromOther) => {
+        const rating = p.ratings[c] || 1;
+        const esc = c.replace(/'/g, "\\'");
+        const handle = fromOther ? '<span class="drag-handle" title="ドラッグしてカテゴリへ">⠿</span>' : '';
+        const dragAttrs = fromOther ? ' draggable="true" data-char="' + esc + '" data-role="' + role + '"' : '';
+        const rowCls = fromOther ? ' from-other' : '';
+        const btns = [1,2,3,4,5].map(v => '<button class="r-btn' + (rating>=v?' on':'') + '" onclick="updateRating(' + p.id + ',\'' + esc + '\',' + v + ')">' + v + '</button>').join('');
+        return '<div class="char-row' + rowCls + '"' + dragAttrs + '>' + handle +
+          '<span class="char-name" title="' + c + '">' + c + '</span>' +
+          '<div class="rating-btns">' + btns + '</div>' +
+          '</div>';
+      };
 
-      const otherHtml = others.length ? `
-        <div class="cat-block">
-          <div class="cat-label cat-other">その他</div>
-          <div class="char-list">
-            ${others.map(c => {
-              const rating = p.ratings[c] || 1;
-              return `<div class="char-row">
-                <span class="char-name" title="${c}">${c}</span>
-                <div class="rating-btns">${[1,2,3,4,5].map(v=>`<button class="r-btn${rating>=v?' on':''}" onclick="updateRating(${p.id},'${c.replace(/'/g,"\\'")}',${v})">${v}</button>`).join('')}</div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>` : '';
+      const catHtml = catGroups.map(cat => {
+        const gi = state.categories.indexOf(cat.catObj);
+        return '<div class="cat-block" data-cat-idx="' + gi + '" data-role="' + role + '"' +
+          ' ondragover="catDragOver(event)" ondragleave="catDragLeave(event)" ondrop="catDrop(event,' + gi + ',\'' + role + '\')">' +
+          '<div class="cat-label">' + cat.name + '</div>' +
+          '<div class="char-list">' + cat.chars.map(c => makeCharRow(c, false)).join('') + '</div>' +
+          '</div>';
+      }).join('');
 
-      return `<div class="role-block">
-        <div class="role-label ${st.rlCls}">${role}</div>
-        <div class="cat-blocks">${catHtml}${otherHtml}</div>
-      </div>`;
+      const otherHtml = others.length ?
+        '<div class="cat-block cat-other-block" data-role="' + role + '"' +
+          ' ondragover="catDragOver(event)" ondragleave="catDragLeave(event)" ondrop="catDropOther(event,\'' + role + '\')">' +
+          '<div class="cat-label cat-other">その他 <span style="font-weight:400;font-style:italic;font-size:9px">ドラッグしてカテゴリへ</span></div>' +
+          '<div class="char-list">' + others.map(c => makeCharRow(c, true)).join('') + '</div>' +
+          '</div>'
+        : '';
+
+      return '<div class="role-block">' +
+        '<div class="role-label ' + st.rlCls + '">' + role + '</div>' +
+        '<div class="cat-blocks">' + catHtml + otherHtml + '</div>' +
+        '</div>';
     }).join('');
 
-    card.innerHTML = `
-      <div class="player-card-header">
-        <div class="player-avatar">${initials}</div>
-        <input class="player-name-inp" type="text" value="${p.name}" placeholder="名前" oninput="updateName(${p.id},this.value)" />
-        <span class="player-score-total">${sc.total}</span>
-        <button class="btn btn-danger btn-sm" onclick="removePlayer(${p.id})" style="margin-left:4px;padding:3px 8px;">✕</button>
-      </div>
-      <div class="player-card-body">
-        <div class="role-ranks">${rankSelHtml}</div>
-        <div class="role-scores">${roleScoreHtml}</div>
-        <div class="score-chips"><span class="chip chip-total">総合 ${sc.total}</span></div>
-        ${charHtml}
-      </div>`;
+    card.innerHTML =
+      '<div class="player-card-header">' +
+        '<div class="player-avatar">' + initials + '</div>' +
+        '<input class="player-name-inp" type="text" value="' + p.name + '" placeholder="名前" oninput="updateName(' + p.id + ',this.value)" />' +
+        '<span class="player-score-total">' + sc.total + '</span>' +
+        '<button class="copy-btn" onclick="copyPlayerScore(' + p.id + ',this)" title="スコアをコピー">📋</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="removePlayer(' + p.id + ')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
+      '</div>' +
+      '<div class="player-card-body">' +
+        '<div class="role-ranks">' + rankSelHtml + '</div>' +
+        '<div class="role-scores">' + roleScoreHtml + '</div>' +
+        '<div class="score-chips"><span class="chip chip-total">総合 ' + sc.total + '</span></div>' +
+        charHtml +
+      '</div>';
     grid.appendChild(card);
   });
 }
@@ -495,22 +558,19 @@ function renderSummary() {
     ? rows.map(({ p, sc }) => {
         const diff = top - sc.total;
         const cls = diff < 50 ? 'diff-ok' : diff < 150 ? 'diff-warn' : 'diff-bad';
-        return `<tr>
-          <td style="font-weight:600">${p.name}</td>
-          <td>
-            <span class="role-score-cell cell-tank">${sc.tank.total}</span>
-            <span style="font-size:10px;color:var(--text3);margin-left:4px">${state.ranks[p.rankIdx['タンク']].label}</span>
-          </td>
-          <td>
-            <span class="role-score-cell cell-dps">${sc.dps.total}</span>
-            <span style="font-size:10px;color:var(--text3);margin-left:4px">${state.ranks[p.rankIdx['ダメージ']].label}</span>
-          </td>
-          <td>
-            <span class="role-score-cell cell-sup">${sc.sup.total}</span>
-            <span style="font-size:10px;color:var(--text3);margin-left:4px">${state.ranks[p.rankIdx['サポート']].label}</span>
-          </td>
-          <td class="cell-total">${sc.total}<span class="diff-badge ${cls}">${diff===0?'TOP':'-'+diff}</span></td>
-        </tr>`;
+        return '<tr>' +
+          '<td style="font-weight:600">' + p.name + '</td>' +
+          '<td><span class="role-score-cell cell-tank">' + sc.tank.total + '</span>' +
+            '<span style="font-size:10px;color:var(--text3);margin-left:4px">' + state.ranks[p.rankIdx['タンク']].label + '</span>' +
+            '<button class="detail-btn detail-btn-tank" style="margin-left:6px" onclick="showDetail(' + p.id + ',&apos;タンク&apos;)">詳細</button></td>' +
+          '<td><span class="role-score-cell cell-dps">' + sc.dps.total + '</span>' +
+            '<span style="font-size:10px;color:var(--text3);margin-left:4px">' + state.ranks[p.rankIdx['ダメージ']].label + '</span>' +
+            '<button class="detail-btn detail-btn-dps" style="margin-left:6px" onclick="showDetail(' + p.id + ',&apos;ダメージ&apos;)">詳細</button></td>' +
+          '<td><span class="role-score-cell cell-sup">' + sc.sup.total + '</span>' +
+            '<span style="font-size:10px;color:var(--text3);margin-left:4px">' + state.ranks[p.rankIdx['サポート']].label + '</span>' +
+            '<button class="detail-btn detail-btn-sup" style="margin-left:6px" onclick="showDetail(' + p.id + ',&apos;サポート&apos;)">詳細</button></td>' +
+          '<td class="cell-total">' + sc.total + '<span class="diff-badge ' + cls + '">' + (diff===0?'TOP':'-'+diff) + '</span></td>' +
+          '</tr>';
       }).join('')
     : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">プレイヤーを追加してください</td></tr>';
 }
@@ -550,16 +610,402 @@ function renderCatCfg() {
     const st = ROLE_STYLE[role];
     cats.forEach((cat, ci) => {
       const gi = state.categories.indexOf(cat);
-      html += `<tr>
-        <td style="font-size:12px">${ci===0?`<span class="badge ${st.bdgCls}">${role}</span>`:''}</td>
-        <td><span style="font-size:12px;color:var(--text2)">${cat.name}</span></td>
-        <td style="font-size:11px;color:var(--text3)">${cat.chars.join(', ')}</td>
-        <td style="text-align:right"><input type="number" class="num-input" value="${cat.bonus}" min="0"
-          onchange="state.categories[${gi}].bonus=+this.value;renderPlayers();renderSummary();" /></td>
-      </tr>`;
+      const roleCell = ci===0 ? '<span class="badge ' + st.bdgCls + '">' + role + '</span>' : '';
+      html += '<tr>' +
+        '<td style="font-size:12px">' + roleCell + '</td>' +
+        '<td><span style="font-size:12px;color:var(--text2)">' + cat.name + '</span></td>' +
+        '<td style="font-size:11px;color:var(--text3)">' + cat.chars.join(', ') + '</td>' +
+        '<td style="text-align:right"><input type="number" class="num-input" value="' + cat.bonus + '" min="0"' +
+          ' onchange="state.categories[' + gi + '].bonus=+this.value;renderPlayers();renderSummary();" /></td>' +
+        '</tr>';
     });
   });
   document.getElementById('cat-cfg-tbody').innerHTML = html;
+}
+
+// ===== DRAG & DROP =====
+let dragChar = null;
+let dragRole = null;
+
+document.addEventListener('dragstart', e => {
+  const row = e.target.closest('.from-other');
+  if (!row) return;
+  dragChar = row.dataset.char;
+  dragRole = row.dataset.role;
+  setTimeout(() => row.classList.add('dragging'), 0);
+});
+
+document.addEventListener('dragend', e => {
+  const row = e.target.closest('.from-other');
+  if (row) row.classList.remove('dragging');
+  dragChar = null; dragRole = null;
+  document.querySelectorAll('.cat-block').forEach(b => b.classList.remove('drag-over'));
+});
+
+function catDragOver(e) {
+  if (!dragChar) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function catDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function catDrop(e, catIdx, role) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragChar || dragRole !== role) return;
+  const cat = state.categories[catIdx];
+  if (!cat) return;
+  if (!cat.chars.includes(dragChar)) {
+    cat.chars.push(dragChar);
+  }
+  renderPlayers(); renderSummary();
+}
+
+function catDropOther(e, role) {
+  // dropping onto その他 = remove from all cats in that role
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragChar || dragRole !== role) return;
+  state.categories.filter(c => c.role === role).forEach(cat => {
+    cat.chars = cat.chars.filter(c => c !== dragChar);
+  });
+  renderPlayers(); renderSummary();
+}
+
+// ===== DETAIL MODAL =====
+function buildDetailHtml(p, role) {
+  const ptMap = {};
+  state.charPts.forEach(c => ptMap[c.rating] = c.pt);
+  const rankPt = state.ranks[p.rankIdx[role]].pt;
+  const rankLabel = state.ranks[p.rankIdx[role]].label;
+
+  // キャラポイント計算（逓減込み）
+  const allChars = state.chars[role] || [];
+  const ratedChars = allChars
+    .map(c => ({ name: c, rating: p.ratings[c] || 1, basePt: ptMap[p.ratings[c] || 1] || 0 }))
+    .filter(x => x.basePt > 0)
+    .sort((a, b) => b.basePt - a.basePt);
+
+  let charPtTotal = 0;
+  const charRows = ratedChars.map((x, i) => {
+    const decayRate = i < state.decay.length ? state.decay[i].rate : state.decay[state.decay.length - 1].rate;
+    const applied = x.basePt * decayRate;
+    charPtTotal += applied;
+    const pct = Math.round(decayRate * 100);
+    return `<div class="detail-row">
+      <span class="detail-row-name">${x.name} <span style="color:var(--text3);font-size:11px">（評価${x.rating}）</span></span>
+      <span class="detail-row-val">${Math.round(applied)} <span class="muted">= ${x.basePt} × ${pct}%</span></span>
+    </div>`;
+  });
+
+  // カテゴリBonus計算
+  const roleCats = state.categories.filter(c => c.role === role);
+  const appliedCats = [];
+  const appliedKeys = new Set();
+  roleCats.forEach(cat => {
+    if (appliedKeys.has(cat.name)) return;
+    const qualChars = cat.chars.filter(c => (p.ratings[c] || 1) >= 4);
+    if (qualChars.length > 0) {
+      appliedCats.push({ name: cat.name, bonus: cat.bonus, chars: qualChars });
+      appliedKeys.add(cat.name);
+    }
+  });
+  const catTotal = appliedCats.reduce((s, c) => s + c.bonus, 0);
+
+  const ROLE_COLOR = { 'タンク': 'var(--tank-color)', 'ダメージ': 'var(--dps-color)', 'サポート': 'var(--sup-color)' };
+  const color = ROLE_COLOR[role] || 'var(--accent)';
+  const total = rankPt + Math.round(charPtTotal) + catTotal;
+
+  return `
+    <div class="detail-section">
+      <div class="detail-section-title">ランクポイント</div>
+      <div class="detail-row">
+        <span class="detail-row-name">${rankLabel}</span>
+        <span class="detail-row-val">${rankPt}</span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">キャラポイント（逓減後合計: ${Math.round(charPtTotal)}）</div>
+      <div class="detail-formula">評価のポイント × 逓減率（高評価キャラから順に適用）</div>
+      ${charRows.length ? charRows.join('') : '<div style="font-size:12px;color:var(--text3);padding:4px 0">評価2以上のキャラなし</div>'}
+    </div>
+
+    ${appliedCats.length ? (
+      '<div class="detail-section">' +
+      '<div class="detail-section-title">カテゴリ Bonus（合計: +' + catTotal + '）</div>' +
+      '<div class="detail-formula">カテゴリ内に評価4以上のキャラが1体以上いる場合に加算</div>' +
+      appliedCats.map(c =>
+        '<div class="detail-row cat-bonus-row">' +
+        '<span class="detail-row-name">' + c.name + ' <span style="font-size:10px;color:var(--text3)">（' + c.chars.join('・') + '）</span></span>' +
+        '<span class="detail-row-val">+' + c.bonus + '</span>' +
+        '</div>'
+      ).join('') +
+      '</div>'
+    ) : ''}
+
+    <div class="detail-total-row">
+      <span style="color:var(--text2)">合計</span>
+      <span style="color:${color};font-size:18px">${total}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:right">${rankPt} + ${Math.round(charPtTotal)}${catTotal>0?' + '+catTotal:''} = ${total}</div>
+  `;
+}
+
+function showDetail(playerId, role) {
+  const p = state.players.find(x => x.id === playerId);
+  if (!p) return;
+  const ROLE_LABEL = { 'タンク': 'タンク', 'ダメージ': 'ダメージ', 'サポート': 'サポート' };
+  document.getElementById('modal-title').textContent = `${p.name} — ${ROLE_LABEL[role]} 詳細`;
+  document.getElementById('modal-body').innerHTML = buildDetailHtml(p, role);
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('detail-modal')) {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+}
+
+// ===== IMPORT =====
+// キャラ名の正規化マップ（略称→正式名）
+function buildCharAliasMap() {
+  const map = {};
+  const allChars = Object.values(state.chars).flat();
+  allChars.forEach(c => {
+    map[c] = c; // 正式名はそのまま
+    // 読み仮名の先頭部分でマッチ
+    map[c.slice(0,2)] = c;
+    map[c.slice(0,3)] = c;
+    map[c.slice(0,4)] = c;
+    map[c.replace(/[・ー]/g, '')] = c; // 中点・長音を除去
+    map[c.replace(/[・ー]/g, '').slice(0,3)] = c;
+  });
+  // 手動エイリアス
+  const manual = {
+    'ジェトパク': 'ジェットパック・キャット', 'ジェットパク': 'ジェットパック・キャット',
+    'ジェットパック': 'ジェットパック・キャット', 'ジェットキャット': 'ジェットパック・キャット', 'jpc': 'ジェットパック・キャット',
+    'ヴェン': 'ヴェンデッタ', 'vendetta': 'ヴェンデッタ',
+    'dva': 'D.Va', 'diva': 'D.Va', 'ディーバ': 'D.Va',
+    'ボール': 'レッキング・ボール', 'wb': 'レッキング・ボール', 'レキボ': 'レッキング・ボール',
+    'jq': 'ジャンカー・クイーン', 'ジャンクイ': 'ジャンカー・クイーン', 'ジャンクイーン': 'ジャンカー・クイーン',
+    'ドゥーム': 'ドゥームフィスト', 'doom': 'ドゥームフィスト',
+    'ウィドウ': 'ウィドウメイカー', 'widow': 'ウィドウメイカー',
+    'シンメ': 'シンメトラ', 'sym': 'シンメトラ',
+    'ジャンクラ': 'ジャンクラット', 'junk': 'ジャンクラット',
+    'トール': 'トールビョーン', 'torb': 'トールビョーン',
+    'バスティ': 'バスティオン', 'bast': 'バスティオン',
+    'ソルジャー': 'ソルジャー76', 'sol': 'ソルジャー76', 's76': 'ソルジャー76',
+    'キャス': 'キャスディ', 'cass': 'キャスディ',
+    'ライフウィ': 'ライフウィーバー', 'lw': 'ライフウィーバー',
+    'バティ': 'バティスト', 'bap': 'バティスト',
+    'ブリギ': 'ブリギッテ', 'brig': 'ブリギッテ',
+    'ゼニ': 'ゼニヤッタ', 'zen': 'ゼニヤッタ',
+    'ラマ': 'ラマットラ', 'ram': 'ラマットラ',
+    'ライン': 'ラインハルト', 'rein': 'ラインハルト',
+    'ロドホ': 'ロードホッグ', 'hog': 'ロードホッグ',
+    'アンラ': 'アンラン',
+    'フレイ': 'フレイヤ',
+    'エムレ': 'エムレ',
+    'シエラ': 'シエラ',
+    'ミズキ': 'ミズキ',
+    'ウーヤン': 'ウーヤン',
+    'イラリ': 'イラリー',
+  };
+  Object.assign(map, manual);
+  return map;
+}
+
+const RANK_ALIASES = {};
+// Bronze 5 → index 0 etc
+(function() {
+  const tiers = ['Bronze','Silver','Gold','Platinum','Diamond','Master','Grandmaster'];
+  const divs = [5,4,3,2,1];
+  let idx = 0;
+  tiers.forEach(t => {
+    divs.forEach(d => {
+      const key = (t+d).toLowerCase().replace(/\s+/g,'');
+      RANK_ALIASES[key] = idx;
+      RANK_ALIASES[(t+' '+d).toLowerCase()] = idx;
+      RANK_ALIASES[(t.slice(0,2).toLowerCase()+d)] = idx;
+      idx++;
+    });
+  });
+  RANK_ALIASES['champion'] = idx;
+  RANK_ALIASES['champ'] = idx;
+  RANK_ALIASES['チャンピオン'] = idx;
+  // Japanese
+  const jpTiers = ['ブロンズ','シルバー','ゴールド','プラチナ','ダイヤ','マスター','グランドマスター'];
+  idx = 0;
+  jpTiers.forEach(t => {
+    divs.forEach(d => {
+      RANK_ALIASES[t+d] = idx;
+      RANK_ALIASES[t+'　'+d] = idx;
+      RANK_ALIASES[t+' '+d] = idx;
+      idx++;
+    });
+  });
+})();
+
+function parseImportText(text) {
+  const aliasMap = buildCharAliasMap();
+  const allChars = Object.values(state.chars).flat();
+
+  const result = {
+    name: null,
+    rankIdx: { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 },
+    ratings: {},
+    warnings: []
+  };
+  allChars.forEach(c => result.ratings[c] = 1);
+
+  const RANK_ROLE_MAP = {
+    'タンク': 'タンク', 'tank': 'タンク', 'たんく': 'タンク',
+    'ダメージ': 'ダメージ', 'dps': 'ダメージ', 'damage': 'ダメージ', 'だめーじ': 'ダメージ',
+    'サポート': 'サポート', 'support': 'サポート', 'sup': 'サポート', 'さぽーと': 'サポート'
+  };
+
+  const lines = text.split(/[\n,]+/).map(l => l.trim()).filter(Boolean);
+
+  lines.forEach(line => {
+    // name: xxx
+    const nameMatch = line.match(/^名前[：:]\s*(.+)$/);
+    if (nameMatch) { result.name = nameMatch[1].trim(); return; }
+
+    // role: rank
+    const roleMatch = line.match(/^([^：:]+)[：:]\s*(.+)$/);
+    if (roleMatch) {
+      const key = roleMatch[1].trim().toLowerCase();
+      const val = roleMatch[2].trim();
+      const role = RANK_ROLE_MAP[key] || RANK_ROLE_MAP[roleMatch[1].trim()];
+      if (role) {
+        const rankKey = val.toLowerCase().replace(/\s+/g,'');
+        let rankIdx = RANK_ALIASES[rankKey];
+        if (rankIdx === undefined) rankIdx = RANK_ALIASES[val.toLowerCase()];
+        if (rankIdx === undefined) rankIdx = RANK_ALIASES[val];
+        if (rankIdx !== undefined) {
+          result.rankIdx[role] = rankIdx;
+        } else {
+          result.warnings.push(`ランク「${val}」を認識できませんでした`);
+        }
+        return;
+      }
+
+      // char: rating
+      const charKey = roleMatch[1].trim();
+      const rating = parseInt(val);
+      if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+        // exact match
+        if (aliasMap[charKey]) {
+          result.ratings[aliasMap[charKey]] = rating;
+          return;
+        }
+        // partial match
+        const match = allChars.find(c => c.includes(charKey) || charKey.includes(c.slice(0,2)));
+        if (match) {
+          result.ratings[match] = rating;
+          return;
+        }
+        result.warnings.push(`キャラ「${charKey}」を認識できませんでした`);
+      }
+    }
+  });
+
+  return result;
+}
+
+function openImport() {
+  document.getElementById('import-text').value = '';
+  document.getElementById('import-error').textContent = '';
+  document.getElementById('import-preview').classList.remove('show');
+  document.getElementById('import-modal').classList.add('open');
+}
+
+function closeImportOverlay(e) {
+  if (e.target === document.getElementById('import-modal'))
+    document.getElementById('import-modal').classList.remove('open');
+}
+
+function previewImport() {
+  const text = document.getElementById('import-text').value.trim();
+  const errEl = document.getElementById('import-error');
+  const preEl = document.getElementById('import-preview');
+  if (!text) { preEl.classList.remove('show'); errEl.textContent = ''; return; }
+
+  const parsed = parseImportText(text);
+  const name = parsed.name || '（名前未設定）';
+  const ranksStr = ROLES.map(r => `${r}: ${state.ranks[parsed.rankIdx[r]].label}`).join(' / ');
+  const ratedChars = Object.entries(parsed.ratings).filter(([,v]) => v > 1).map(([k,v]) => `${k}:${v}`).join('  ');
+  preEl.innerHTML = `<strong>${name}</strong><br><span style="color:var(--text3)">${ranksStr}</span><br>${ratedChars || '（評価なし）'}`;
+  preEl.classList.add('show');
+
+  errEl.textContent = parsed.warnings.length ? '⚠ ' + parsed.warnings.join(' / ') : '';
+}
+
+function doImport() {
+  const text = document.getElementById('import-text').value.trim();
+  if (!text) return;
+  const parsed = parseImportText(text);
+  const id = state.nextId++;
+  state.players.push({
+    id,
+    name: parsed.name || ('Player ' + (id + 1)),
+    rankIdx: parsed.rankIdx,
+    ratings: parsed.ratings
+  });
+  renderPlayers(); renderSummary();
+  document.getElementById('import-modal').classList.remove('open');
+}
+
+// ===== COPY =====
+function formatPlayerScore(p) {
+  const sc = calcAllScores(p);
+  const tankRank = state.ranks[p.rankIdx['タンク']].label;
+  const dpsRank  = state.ranks[p.rankIdx['ダメージ']].label;
+  const supRank  = state.ranks[p.rankIdx['サポート']].label;
+  const lines = [
+    p.name,
+    'タンク:    ' + sc.tank.total + '  (' + tankRank + '  キャラ:' + sc.tank.charPt + '  カテゴリ:+' + sc.tank.catBonus + ')',
+    'ダメージ:  ' + sc.dps.total  + '  (' + dpsRank  + '  キャラ:' + sc.dps.charPt  + '  カテゴリ:+' + sc.dps.catBonus  + ')',
+    'サポート:  ' + sc.sup.total  + '  (' + supRank  + '  キャラ:' + sc.sup.charPt  + '  カテゴリ:+' + sc.sup.catBonus  + ')',
+    '総合:      ' + sc.total
+  ];
+  return lines.join('\n');
+}
+
+function copyPlayerScore(id, btn) {
+  const p = state.players.find(x => x.id === id);
+  if (!p) return;
+  navigator.clipboard.writeText(formatPlayerScore(p)).then(() => flashCopied(btn));
+}
+
+function copyAllScores(btn) {
+  if (!state.players.length) return;
+  const rows = state.players
+    .map(p => ({ p, sc: calcAllScores(p) }))
+    .sort((a, b) => b.sc.total - a.sc.total);
+  const header = '名前             タンク    ダメージ  サポート  総合';
+  const sep    = '─'.repeat(52);
+  const lines = rows.map(({ p, sc }) => {
+    const n = p.name.padEnd(14);
+    const t = String(sc.tank.total).padStart(6);
+    const d = String(sc.dps.total).padStart(8);
+    const s = String(sc.sup.total).padStart(8);
+    const total = String(sc.total).padStart(6);
+    return `${n}  ${t}  ${d}  ${s}  ${total}`;
+  });
+  const text = [header, sep, ...lines, sep, '（OW カスタムマッチ 強さ計算）'].join('\n');
+  navigator.clipboard.writeText(text).then(() => flashCopied(btn));
+}
+
+function flashCopied(btn) {
+  btn.classList.add('copied');
+  const orig = btn.textContent;
+  btn.textContent = '✓ コピー完了';
+  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; btn.innerHTML = orig.includes('全員') ? '📋 全員コピー' : '📋'; }, 1800);
 }
 
 function showPage(name, btn) {
@@ -577,5 +1023,52 @@ function showPage(name, btn) {
 addPlayer();
 addPlayer();
 </script>
+  <!-- Import Modal -->
+  <div class="import-overlay" id="import-modal" onclick="closeImportOverlay(event)">
+    <div class="import-modal">
+      <div class="import-modal-header">
+        <div class="import-modal-title">テキストからプレイヤーを追加</div>
+        <button class="modal-close" onclick="document.getElementById('import-modal').classList.remove('open')">✕</button>
+      </div>
+      <div class="import-modal-body">
+        <div class="import-desc">
+          以下の形式でテキストを貼り付けてください。<br>
+          名前・ロール別ランク・キャラ評価を自由な順で書けます。<br>
+          <code>名前: 田中</code> &nbsp;
+          <code>タンク: Gold 5</code> &nbsp;
+          <code>ダメージ: Platinum 1</code> &nbsp;
+          <code>サポート: Master 5</code><br>
+          キャラ評価: <code>アナ: 5</code> <code>キリコ:4</code> （スペース任意）<br>
+          キャラ名は略称・部分一致でも認識されます（例: <code>ジェトパク: 3</code> <code>ヴェン: 2</code>）
+        </div>
+        <textarea class="import-textarea" id="import-text" placeholder="例:
+名前: 田中
+サポート: Master 5
+ダメージ: Gold 3
+タンク: Platinum 1
+アナ: 5  キリコ: 5  バティスト: 4
+ルシオ: 3  ジュノ: 3  ブリギッテ: 3
+ゲンジ: 4  トレーサー: 3  リーパー: 4
+ソルジャー: 5  キャスディ: 4  ソジョーン: 4" oninput="previewImport()"></textarea>
+        <div class="import-error" id="import-error"></div>
+        <div class="import-preview" id="import-preview"></div>
+        <div class="import-footer">
+          <button class="btn" onclick="document.getElementById('import-modal').classList.remove('open')">キャンセル</button>
+          <button class="btn btn-primary" onclick="doImport()">追加する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">詳細</div>
+        <button class="modal-close" onclick="document.getElementById('detail-modal').classList.remove('open')">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
 </body>
 </html>
