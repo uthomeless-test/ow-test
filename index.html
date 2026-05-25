@@ -1303,10 +1303,10 @@ function copyAllScores(btn) {
 }
 
 function flashCopied(btn) {
-  btn.classList.add('copied');
   const orig = btn.textContent;
+  btn.classList.add('copied');
   btn.textContent = '✓ コピー完了';
-  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; btn.innerHTML = orig.includes('全員') ? '📋 全員コピー' : '📋'; }, 1800);
+  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; }, 1800);
 }
 
 function showPage(name, btn) {
