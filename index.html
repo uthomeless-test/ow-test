@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OW カスタムマッチ 強さ計算</title>
+<style>
+  :root {
+    --bg:      #f5f6f8;
+    --bg2:     #ffffff;
+    --bg3:     #f0f1f4;
+    --border:  #e2e4ea;
+    --accent:  #2563eb;
+    --accent-light: #eff4ff;
+    --text:    #1a1d27;
+    --text2:   #5a607a;
+    --text3:   #9ba3bb;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --warn:    #d97706;
+    --warn-bg: #fffbeb;
+    --danger:  #dc2626;
+    --danger-bg: #fef2f2;
+    --purple:  #7c3aed;
+    --purple-bg: #f5f3ff;
+    --teal:    #0891b2;
+    --teal-bg: #ecfeff;
+    --tank-color: #7c3aed;
+    --tank-bg: #f5f3ff;
+    --dps-color: #dc2626;
+    --dps-bg: #fef2f2;
+    --sup-color: #0891b2;
+    --sup-bg: #ecfeff;
+    --radius:  7px;
+    --radius-lg: 11px;
+    --shadow:  0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  .app { display: grid; grid-template-columns: 210px 1fr; min-height: 100vh; }
+
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 1.25rem 0.875rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; box-shadow: var(--shadow); }
+  .logo { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; margin-bottom: 1.75rem; padding-bottom: 0.875rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
+  .nav-section { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin: 1.25rem 0 0.4rem 0.25rem; }
+  .nav-btn { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text2); font-size: 13px; padding: 6px 10px; border-radius: var(--radius); cursor: pointer; transition: all 0.12s; }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+  .main { padding: 1.75rem 2rem; overflow-y: auto; }
+  .page-title { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+  .page-sub { font-size: 13px; color: var(--text3); margin-bottom: 1.5rem; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+
+  .num-input { width: 74px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 13px; padding: 4px 8px; text-align: right; }
+  .num-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .badge-blue   { background: var(--accent-light); color: var(--accent); }
+  .badge-purple { background: var(--purple-bg); color: var(--purple); }
+  .badge-teal   { background: var(--teal-bg); color: var(--teal); }
+  .badge-red    { background: var(--dps-bg); color: var(--dps-color); }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg2); color: var(--text); transition: all 0.12s; box-shadow: var(--shadow); }
+  .btn:hover { background: var(--bg3); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(37,99,235,0.25); }
+  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+  .btn-danger { background: var(--danger-bg); border-color: #fecaca; color: var(--danger); box-shadow: none; }
+  .btn-danger:hover { background: #fee2e2; }
+  .btn-sm { padding: 4px 9px; font-size: 12px; }
+
+  /* Player card */
+  .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+  .player-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+  .player-card-header { background: var(--bg3); padding: 11px 14px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); }
+  .player-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+  .player-name-inp { background: none; border: none; color: var(--text); font-size: 14px; font-weight: 700; flex: 1; outline: none; min-width: 80px; }
+  .player-name-inp::placeholder { color: var(--text3); font-weight: 400; }
+  .player-score-total { font-size: 17px; font-weight: 700; color: var(--accent); margin-left: auto; white-space: nowrap; }
+  .player-card-body { padding: 12px 14px; }
+
+  /* Role rank inputs */
+  .role-ranks { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .role-rank-block { display: flex; flex-direction: column; gap: 3px; }
+  .role-rank-label { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; padding: 2px 6px; border-radius: 4px; text-align: center; }
+  .label-tank { background: var(--tank-bg); color: var(--tank-color); }
+  .label-dps  { background: var(--dps-bg);  color: var(--dps-color); }
+  .label-sup  { background: var(--sup-bg);  color: var(--sup-color); }
+  .rank-sel { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-size: 11px; padding: 4px 5px; border-radius: var(--radius); }
+  .rank-sel:focus { outline: none; border-color: var(--accent); }
+
+  /* Role score chips row */
+  .role-scores { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .role-score-box { border-radius: var(--radius); padding: 6px 8px; text-align: center; }
+  .rsb-tank { background: var(--tank-bg); }
+  .rsb-dps  { background: var(--dps-bg); }
+  .rsb-sup  { background: var(--sup-bg); }
+  .rsb-label { font-size: 10px; font-weight: 700; }
+  .rsb-tank .rsb-label { color: var(--tank-color); }
+  .rsb-dps  .rsb-label { color: var(--dps-color); }
+  .rsb-sup  .rsb-label { color: var(--sup-color); }
+  .rsb-val { font-size: 16px; font-weight: 700; }
+  .rsb-tank .rsb-val { color: var(--tank-color); }
+  .rsb-dps  .rsb-val  { color: var(--dps-color); }
+  .rsb-sup  .rsb-val  { color: var(--sup-color); }
+  .rsb-detail { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  .score-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .chip { padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .chip-total { background: var(--accent-light); color: var(--accent); }
+
+  /* Char rating */
+  .role-block { margin-bottom: 10px; }
+  .role-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; padding: 2px 7px; border-radius: 4px; display: inline-block; }
+  .rl-tank { background: var(--tank-bg); color: var(--tank-color); }
+  .rl-dps  { background: var(--dps-bg);  color: var(--dps-color); }
+  .rl-sup  { background: var(--sup-bg);  color: var(--sup-color); }
+  .cat-blocks { display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
+  .cat-block { border-left: 2px solid var(--border); padding-left: 8px; }
+  .cat-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.4px; margin-bottom: 4px; }
+  .cat-other { font-style: italic; }
+  .char-list { display: flex; flex-direction: column; gap: 3px; }
+  .char-row { display: flex; align-items: center; gap: 6px; }
+  .char-name { font-size: 12px; color: var(--text2); width: 115px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rating-btns { display: flex; gap: 2px; }
+  .r-btn { width: 24px; height: 20px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.1s; }
+  .r-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .r-btn.on { background: var(--accent-light); border-color: rgba(37,99,235,0.35); color: var(--accent); }
+
+  /* Summary */
+  .role-score-cell { font-weight: 700; }
+  .cell-tank { color: var(--tank-color); }
+  .cell-dps  { color: var(--dps-color); }
+  .cell-sup  { color: var(--sup-color); }
+  .cell-total { color: var(--accent); font-weight: 700; }
+  .diff-badge { font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+  .diff-ok   { background: var(--success-bg); color: var(--success); }
+  .diff-warn { background: var(--warn-bg); color: var(--warn); }
+  .diff-bad  { background: var(--danger-bg); color: var(--danger); }
+
+  .page { display: none; }
+  .page.active { display: block; }
+  .section-gap { margin-top: 1.5rem; }
+  .decay-pos { width: 30px; color: var(--text3); font-size: 12px; }
+  .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .spacer { flex: 1; }
+
+  @media (max-width: 720px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .player-grid { grid-template-columns: 1fr; }
+    .main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar">
+    <div class="logo">⚔ OW Match</div>
+    <div class="nav-section">メイン</div>
+    <button class="nav-btn active" onclick="showPage('players',this)">プレイヤー入力</button>
+    <button class="nav-btn" onclick="showPage('summary',this)">スコア比較</button>
+    <div class="nav-section">設定</div>
+    <button class="nav-btn" onclick="showPage('cfg-rank',this)">ランクポイント</button>
+    <button class="nav-btn" onclick="showPage('cfg-char',this)">キャラポイント</button>
+    <button class="nav-btn" onclick="showPage('cfg-decay',this)">逓減率</button>
+    <button class="nav-btn" onclick="showPage('cfg-category',this)">カテゴリ Bonus</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- Players -->
+    <div id="page-players" class="page active">
+      <div class="top-bar">
+        <div>
+          <div class="page-title">プレイヤー入力</div>
+          <div class="page-sub">ロール別にランクとキャラ評価を入力してください</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="addPlayer()">＋ プレイヤー追加</button>
+      </div>
+      <div class="player-grid" id="player-grid"></div>
+    </div>
+
+    <!-- Summary -->
+    <div id="page-summary" class="page">
+      <div class="page-title">スコア比較</div>
+      <div class="page-sub">全プレイヤーのロール別スコア一覧（総合順）</div>
+      <div class="card section-gap">
+        <table>
+          <thead>
+            <tr>
+              <th>プレイヤー</th>
+              <th style="color:var(--tank-color)">タンク</th>
+              <th style="color:var(--dps-color)">ダメージ</th>
+              <th style="color:var(--sup-color)">サポート</th>
+              <th>総合</th>
+            </tr>
+          </thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Config: Rank -->
+    <div id="page-cfg-rank" class="page">
+      <div class="page-title">ランクポイント設定</div>
+      <div class="page-sub">各ランクに対応するポイントを変更できます</div>
+      <div class="card section-gap">
+        <table><thead><tr><th>ランク</th><th style="text-align:right">ポイント</th></tr></thead>
+        <tbody id="rank-cfg-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Config: Char pts -->
+    <div id="page-cfg-char" class="page">
+      <div class="page-title">キャラポイント設定</div>
+      <div class="page-sub">評価1〜5に対応するポイントを変更できます</div>
+      <div class="card section-gap" style="max-width:420px">
+        <table><thead><tr><th>評価</th><th>説明</th><th style="text-align:right">ポイント</th></tr></thead>
+        <tbody id="char-cfg-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Config: Decay -->
+    <div id="page-cfg-decay" class="page">
+      <div class="page-title">逓減率設定</div>
+      <div class="page-sub">キャラポイントに掛かる倍率。ポイントが高い順から適用されます</div>
+      <div class="card section-gap" style="max-width:420px">
+        <table><thead><tr><th class="decay-pos">#</th><th>説明</th><th style="text-align:right">倍率</th></tr></thead>
+        <tbody id="decay-cfg-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Config: Category -->
+    <div id="page-cfg-category" class="page">
+      <div class="page-title">カテゴリ Bonus 設定</div>
+      <div class="page-sub">カテゴリ内に評価4以上のキャラが1体以上いる場合に加算されます</div>
+      <div class="card section-gap">
+        <table><thead><tr><th>ロール</th><th>カテゴリ</th><th>対象キャラ</th><th style="text-align:right">Bonus</th></tr></thead>
+        <tbody id="cat-cfg-tbody"></tbody></table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const ROLES = ['タンク','ダメージ','サポート'];
+
+const state = {
+  ranks: [
+    {label:'Bronze 5',pt:100},{label:'Bronze 4',pt:110},{label:'Bronze 3',pt:120},{label:'Bronze 2',pt:135},{label:'Bronze 1',pt:150},
+    {label:'Silver 5',pt:180},{label:'Silver 4',pt:195},{label:'Silver 3',pt:210},{label:'Silver 2',pt:228},{label:'Silver 1',pt:245},
+    {label:'Gold 5',pt:300},{label:'Gold 4',pt:325},{label:'Gold 3',pt:350},{label:'Gold 2',pt:378},{label:'Gold 1',pt:410},
+    {label:'Platinum 5',pt:500},{label:'Platinum 4',pt:545},{label:'Platinum 3',pt:595},{label:'Platinum 2',pt:648},{label:'Platinum 1',pt:700},
+    {label:'Diamond 5',pt:800},{label:'Diamond 4',pt:870},{label:'Diamond 3',pt:950},{label:'Diamond 2',pt:1040},{label:'Diamond 1',pt:1130},
+    {label:'Master 5',pt:1300},{label:'Master 4',pt:1430},{label:'Master 3',pt:1570},{label:'Master 2',pt:1720},{label:'Master 1',pt:1880},
+    {label:'Grandmaster 5',pt:2000},{label:'Grandmaster 4',pt:2200},{label:'Grandmaster 3',pt:2400},{label:'Grandmaster 2',pt:2600},{label:'Grandmaster 1',pt:2800},
+    {label:'Champion',pt:3000}
+  ],
+  charPts: [
+    {rating:1,label:'出さない',pt:0},
+    {rating:2,label:'状況限定',pt:5},
+    {rating:3,label:'状況次第で採用',pt:15},
+    {rating:4,label:'よく使う',pt:30},
+    {rating:5,label:'メインピック',pt:50}
+  ],
+  decay: [
+    {pos:'1体目',rate:1.0},
+    {pos:'2体目',rate:0.7},
+    {pos:'3体目',rate:0.5},
+    {pos:'4体目',rate:0.3},
+    {pos:'5体目以降',rate:0.1}
+  ],
+  chars: {
+    'ダメージ': [
+      'アッシュ','ウィドウメイカー','エコー','キャスディ','ゲンジ','シンメトラ',
+      'ジャンクラット','ソジョーン','ソルジャー76','ソンブラ','トールビョーン',
+      'トレーサー','ハンゾー','バスティオン','ファラ','ベンチャー','メイ',
+      'リーパー','フレイヤ','ヴェンデッタ'
+    ],
+    'タンク': [
+      'ハザード','D.Va','ウィンストン','オリーサ','ザリア','シグマ',
+      'ジャンカー・クイーン','ドゥームフィスト','マウガ','ラインハルト',
+      'ラマットラ','レッキング・ボール','ロードホッグ'
+    ],
+    'サポート': [
+      'アナ','イラリー','キリコ','ジュノ','ゼニヤッタ','バティスト',
+      'ブリギッテ','マーシー','モイラ','ライフウィーバー','ルシオ','ウーヤン'
+    ]
+  },
+  categories: [
+    {role:'ダメージ', name:'Dive',        chars:['トレーサー','ゲンジ','ソンブラ','エコー'], bonus:40},
+    {role:'ダメージ', name:'Rush',        chars:['メイ','リーパー','シンメトラ','キャスディ'], bonus:40},
+    {role:'ダメージ', name:'Poke',        chars:['アッシュ','ウィドウメイカー','ハンゾー','ソジョーン'], bonus:40},
+    {role:'ダメージ', name:'Hitscan',     chars:['アッシュ','キャスディ','ウィドウメイカー','ソルジャー76'], bonus:25},
+    {role:'ダメージ', name:'Air',         chars:['エコー','ファラ'], bonus:25},
+    {role:'ダメージ', name:'Utility',     chars:['ソンブラ','メイ'], bonus:25},
+    {role:'タンク',   name:'Dive',        chars:['ウィンストン','D.Va','レッキング・ボール'], bonus:40},
+    {role:'タンク',   name:'Rush',        chars:['ラインハルト','ラマットラ'], bonus:40},
+    {role:'タンク',   name:'Poke',        chars:['シグマ','オリーサ'], bonus:40},
+    {role:'タンク',   name:'Air Control', chars:['ウィンストン','D.Va'], bonus:25},
+    {role:'タンク',   name:'Peel',        chars:['D.Va','ザリア'], bonus:25},
+    {role:'サポート', name:'Main Heal',   chars:['アナ','キリコ','バティスト'], bonus:40},
+    {role:'サポート', name:'Dive Support',chars:['ルシオ','ブリギッテ','キリコ'], bonus:40},
+    {role:'サポート', name:'Anti Dive',   chars:['ブリギッテ','モイラ'], bonus:25},
+    {role:'サポート', name:'Poke',        chars:['ゼニヤッタ','バティスト'], bonus:40},
+    {role:'サポート', name:'Utility',     chars:['ルシオ','ゼニヤッタ'], bonus:25}
+  ],
+  players: [],
+  nextId: 0
+};
+
+const RANK_DEFAULT = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
+
+// ロール別スコア計算
+function calcRoleScore(p, role) {
+  const rankPt = state.ranks[p.rankIdx[role]].pt;
+  const ptMap = {};
+  state.charPts.forEach(c => ptMap[c.rating] = c.pt);
+  const chars = state.chars[role] || [];
+  const rated = chars
+    .map(c => ({ pt: ptMap[p.ratings[c] || 1] || 0 }))
+    .filter(x => x.pt > 0)
+    .sort((a, b) => b.pt - a.pt);
+  let charPt = 0;
+  rated.forEach((x, i) => {
+    const r = i < state.decay.length ? state.decay[i].rate : state.decay[state.decay.length - 1].rate;
+    charPt += x.pt * r;
+  });
+  charPt = Math.round(charPt);
+  let catBonus = 0;
+  const applied = new Set();
+  state.categories.filter(c => c.role === role).forEach(cat => {
+    const key = cat.name;
+    if (applied.has(key)) return;
+    if (cat.chars.some(c => (p.ratings[c] || 1) >= 4)) { catBonus += cat.bonus; applied.add(key); }
+  });
+  return { rankPt, charPt, catBonus, total: rankPt + charPt + catBonus };
+}
+
+function calcAllScores(p) {
+  const tank = calcRoleScore(p, 'タンク');
+  const dps  = calcRoleScore(p, 'ダメージ');
+  const sup  = calcRoleScore(p, 'サポート');
+  const total = tank.total + dps.total + sup.total;
+  return { tank, dps, sup, total };
+}
+
+// プレイヤー追加
+function addPlayer() {
+  const id = state.nextId++;
+  const ratings = {};
+  Object.values(state.chars).flat().forEach(c => ratings[c] = 1);
+  const rankIdx = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
+  state.players.push({ id, name: 'Player ' + (id + 1), rankIdx, ratings });
+  renderPlayers(); renderSummary();
+}
+
+function removePlayer(id) {
+  state.players = state.players.filter(p => p.id !== id);
+  renderPlayers(); renderSummary();
+}
+
+function updateName(id, val) {
+  const p = state.players.find(p => p.id === id);
+  if (p) { p.name = val; renderSummary(); }
+}
+
+function updateRank(id, role, val) {
+  const p = state.players.find(p => p.id === id);
+  if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); }
+}
+
+function updateRating(id, char, val) {
+  const p = state.players.find(p => p.id === id);
+  if (p) { p.ratings[char] = val; renderPlayers(); renderSummary(); }
+}
+
+const ROLE_STYLE = {
+  'タンク':   { cls: 'rsb-tank', labelCls: 'label-tank', rlCls: 'rl-tank', bdgCls: 'badge-purple' },
+  'ダメージ': { cls: 'rsb-dps',  labelCls: 'label-dps',  rlCls: 'rl-dps',  bdgCls: 'badge-red'    },
+  'サポート': { cls: 'rsb-sup',  labelCls: 'label-sup',  rlCls: 'rl-sup',  bdgCls: 'badge-teal'   }
+};
+
+function renderPlayers() {
+  const grid = document.getElementById('player-grid');
+  grid.innerHTML = '';
+  state.players.forEach(p => {
+    const sc = calcAllScores(p);
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    const initials = p.name.slice(0, 2).toUpperCase();
+
+    // ロール別ランク選択
+    const rankSelHtml = ROLES.map(role => {
+      const st = ROLE_STYLE[role];
+      return `<div class="role-rank-block">
+        <div class="role-rank-label ${st.labelCls}">${role}</div>
+        <select class="rank-sel" onchange="updateRank(${p.id},'${role}',this.value)">
+          ${state.ranks.map((r,i)=>`<option value="${i}"${i===p.rankIdx[role]?' selected':''}>${r.label}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('');
+
+    // ロール別スコアボックス
+    const roleScoreHtml = [
+      { role:'タンク',   sc: sc.tank, cls:'rsb-tank' },
+      { role:'ダメージ', sc: sc.dps,  cls:'rsb-dps'  },
+      { role:'サポート', sc: sc.sup,  cls:'rsb-sup'  }
+    ].map(x => `
+      <div class="role-score-box ${x.cls}">
+        <div class="rsb-label">${x.role}</div>
+        <div class="rsb-val">${x.sc.total}</div>
+        <div class="rsb-detail">${x.sc.rankPt} + ${x.sc.charPt}${x.sc.catBonus>0?' +'+x.sc.catBonus:''}</div>
+      </div>`).join('');
+
+    // キャラ評価（ロール→カテゴリ→キャラ）
+    const charHtml = ROLES.map(role => {
+      const st = ROLE_STYLE[role];
+      const allChars = state.chars[role];
+      // カテゴリごとにグループ化
+      const roleCats = state.categories.filter(c => c.role === role);
+      // 各カテゴリに属するキャラを収集（重複可なので表示済みは除外しない）
+      const catGroups = roleCats.map(cat => ({ name: cat.name, chars: cat.chars.filter(c => allChars.includes(c)) }));
+      // どのカテゴリにも属さないキャラ
+      const categorized = new Set(roleCats.flatMap(c => c.chars));
+      const others = allChars.filter(c => !categorized.has(c));
+
+      const catHtml = catGroups.map(cat => `
+        <div class="cat-block">
+          <div class="cat-label">${cat.name}</div>
+          <div class="char-list">
+            ${cat.chars.map(c => {
+              const rating = p.ratings[c] || 1;
+              return `<div class="char-row">
+                <span class="char-name" title="${c}">${c}</span>
+                <div class="rating-btns">${[1,2,3,4,5].map(v=>`<button class="r-btn${rating>=v?' on':''}" onclick="updateRating(${p.id},'${c.replace(/'/g,"\\'")}',${v})">${v}</button>`).join('')}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`).join('');
+
+      const otherHtml = others.length ? `
+        <div class="cat-block">
+          <div class="cat-label cat-other">その他</div>
+          <div class="char-list">
+            ${others.map(c => {
+              const rating = p.ratings[c] || 1;
+              return `<div class="char-row">
+                <span class="char-name" title="${c}">${c}</span>
+                <div class="rating-btns">${[1,2,3,4,5].map(v=>`<button class="r-btn${rating>=v?' on':''}" onclick="updateRating(${p.id},'${c.replace(/'/g,"\\'")}',${v})">${v}</button>`).join('')}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : '';
+
+      return `<div class="role-block">
+        <div class="role-label ${st.rlCls}">${role}</div>
+        <div class="cat-blocks">${catHtml}${otherHtml}</div>
+      </div>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="player-card-header">
+        <div class="player-avatar">${initials}</div>
+        <input class="player-name-inp" type="text" value="${p.name}" placeholder="名前" oninput="updateName(${p.id},this.value)" />
+        <span class="player-score-total">${sc.total}</span>
+        <button class="btn btn-danger btn-sm" onclick="removePlayer(${p.id})" style="margin-left:4px;padding:3px 8px;">✕</button>
+      </div>
+      <div class="player-card-body">
+        <div class="role-ranks">${rankSelHtml}</div>
+        <div class="role-scores">${roleScoreHtml}</div>
+        <div class="score-chips"><span class="chip chip-total">総合 ${sc.total}</span></div>
+        ${charHtml}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderSummary() {
+  const tbody = document.getElementById('summary-tbody');
+  if (!tbody) return;
+  const rows = state.players.map(p => ({ p, sc: calcAllScores(p) })).sort((a,b) => b.sc.total - a.sc.total);
+  const top = rows.length ? rows[0].sc.total : 0;
+  tbody.innerHTML = rows.length
+    ? rows.map(({ p, sc }) => {
+        const diff = top - sc.total;
+        const cls = diff < 50 ? 'diff-ok' : diff < 150 ? 'diff-warn' : 'diff-bad';
+        return `<tr>
+          <td style="font-weight:600">${p.name}</td>
+          <td>
+            <span class="role-score-cell cell-tank">${sc.tank.total}</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:4px">${state.ranks[p.rankIdx['タンク']].label}</span>
+          </td>
+          <td>
+            <span class="role-score-cell cell-dps">${sc.dps.total}</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:4px">${state.ranks[p.rankIdx['ダメージ']].label}</span>
+          </td>
+          <td>
+            <span class="role-score-cell cell-sup">${sc.sup.total}</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:4px">${state.ranks[p.rankIdx['サポート']].label}</span>
+          </td>
+          <td class="cell-total">${sc.total}<span class="diff-badge ${cls}">${diff===0?'TOP':'-'+diff}</span></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">プレイヤーを追加してください</td></tr>';
+}
+
+function renderRankCfg() {
+  document.getElementById('rank-cfg-tbody').innerHTML = state.ranks.map((r,i)=>`
+    <tr><td>${r.label}</td>
+    <td style="text-align:right"><input type="number" class="num-input" value="${r.pt}" min="0"
+      onchange="state.ranks[${i}].pt=+this.value;renderPlayers();renderSummary();" /></td></tr>
+  `).join('');
+}
+
+function renderCharCfg() {
+  document.getElementById('char-cfg-tbody').innerHTML = state.charPts.map((c,i)=>`
+    <tr>
+      <td><span class="badge badge-blue">${c.rating}</span></td>
+      <td style="color:var(--text2)">${c.label}</td>
+      <td style="text-align:right"><input type="number" class="num-input" value="${c.pt}" min="0"
+        onchange="state.charPts[${i}].pt=+this.value;renderPlayers();renderSummary();" /></td>
+    </tr>`).join('');
+}
+
+function renderDecayCfg() {
+  document.getElementById('decay-cfg-tbody').innerHTML = state.decay.map((d,i)=>`
+    <tr>
+      <td class="decay-pos">${i+1}</td>
+      <td style="color:var(--text2)">${d.pos}</td>
+      <td style="text-align:right"><input type="number" class="num-input" value="${d.rate}" min="0" max="2" step="0.05"
+        onchange="state.decay[${i}].rate=+this.value;renderPlayers();renderSummary();" /></td>
+    </tr>`).join('');
+}
+
+function renderCatCfg() {
+  let html = '';
+  ROLES.forEach(role => {
+    const cats = state.categories.filter(c => c.role === role);
+    const st = ROLE_STYLE[role];
+    cats.forEach((cat, ci) => {
+      const gi = state.categories.indexOf(cat);
+      html += `<tr>
+        <td style="font-size:12px">${ci===0?`<span class="badge ${st.bdgCls}">${role}</span>`:''}</td>
+        <td><span style="font-size:12px;color:var(--text2)">${cat.name}</span></td>
+        <td style="font-size:11px;color:var(--text3)">${cat.chars.join(', ')}</td>
+        <td style="text-align:right"><input type="number" class="num-input" value="${cat.bonus}" min="0"
+          onchange="state.categories[${gi}].bonus=+this.value;renderPlayers();renderSummary();" /></td>
+      </tr>`;
+    });
+  });
+  document.getElementById('cat-cfg-tbody').innerHTML = html;
+}
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name==='summary')      renderSummary();
+  if (name==='cfg-rank')     renderRankCfg();
+  if (name==='cfg-char')     renderCharCfg();
+  if (name==='cfg-decay')    renderDecayCfg();
+  if (name==='cfg-category') renderCatCfg();
+}
+
+addPlayer();
+addPlayer();
+</script>
+</body>
+</html>
