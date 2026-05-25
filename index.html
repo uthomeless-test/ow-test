@@ -149,7 +149,8 @@
   .char-list { display: flex; flex-direction: column; gap: 3px; min-height: 8px; }
   .char-row { display: flex; align-items: center; gap: 5px; }
   .char-row.from-other { cursor: grab; }
-  .char-row.from-other:active { cursor: grabbing; opacity: 0.5; }
+  .char-row.from-cat { cursor: grab; }
+  .char-row.from-other:active, .char-row.from-cat:active { cursor: grabbing; opacity: 0.5; }
   .char-row.dragging { opacity: 0.3; }
   .drag-handle { color: var(--text3); font-size: 11px; flex-shrink: 0; user-select: none; }
   .char-name { font-size: 12px; color: var(--text2); width: 108px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -365,11 +366,10 @@ const state = {
     {role:'ダメージ', name:'Hitscan',     chars:['アッシュ','キャスディ','ウィドウメイカー','ソルジャー76'], bonus:25},
     {role:'ダメージ', name:'Air',         chars:['エコー','ファラ'], bonus:25},
     {role:'ダメージ', name:'Utility',     chars:['ソンブラ','メイ'], bonus:25},
-    {role:'タンク',   name:'Dive',        chars:['ウィンストン','D.Va','レッキング・ボール'], bonus:40},
-    {role:'タンク',   name:'Rush',        chars:['ラインハルト','ラマットラ'], bonus:40},
-    {role:'タンク',   name:'Poke',        chars:['シグマ','オリーサ'], bonus:40},
+    {role:'タンク',   name:'Dive',        chars:['ウィンストン','D.Va','レッキング・ボール','ハザード','ドゥームフィスト'], bonus:40},
+    {role:'タンク',   name:'Rush',        chars:['ラインハルト','ラマットラ','ジャンカー・クイーン','マウガ','ザリア'], bonus:40},
+    {role:'タンク',   name:'Poke',        chars:['シグマ','オリーサ','ドミナ'], bonus:40},
     {role:'タンク',   name:'Air Control', chars:['ウィンストン','D.Va'], bonus:25},
-    {role:'タンク',   name:'Peel',        chars:['D.Va','ザリア'], bonus:25},
     {role:'サポート', name:'Main Heal',   chars:['アナ','キリコ','バティスト'], bonus:40},
     {role:'サポート', name:'Dive Support',chars:['ルシオ','ブリギッテ','キリコ'], bonus:40},
     {role:'サポート', name:'Anti Dive',   chars:['ブリギッテ','モイラ'], bonus:25},
@@ -495,12 +495,13 @@ function renderPlayers() {
       const categorized = new Set(roleCats.flatMap(c => c.chars));
       const others = allChars.filter(c => !categorized.has(c));
 
-      const makeCharRow = (c, fromOther) => {
+      const makeCharRow = (c, fromOther, catName) => {
         const rating = p.ratings[c] || 1;
         const esc = c.replace(/'/g, "\\'");
-        const handle = fromOther ? '<span class="drag-handle" title="ドラッグしてカテゴリへ">⠿</span>' : '';
-        const dragAttrs = fromOther ? ' draggable="true" data-char="' + esc + '" data-role="' + role + '"' : '';
-        const rowCls = fromOther ? ' from-other' : '';
+        const escCat = (catName || '').replace(/'/g, "\\'");
+        const handle = '<span class="drag-handle" title="ドラッグして移動">⠿</span>';
+        const dragAttrs = ' draggable="true" data-char="' + esc + '" data-role="' + role + '" data-from-cat="' + escCat + '"';
+        const rowCls = fromOther ? ' from-other' : ' from-cat';
         const btns = [1,2,3,4,5].map(v => '<button class="r-btn' + (rating>=v?' on':'') + '" onclick="updateRating(' + p.id + ',\'' + esc + '\',' + v + ')">' + v + '</button>').join('');
         return '<div class="char-row' + rowCls + '"' + dragAttrs + '>' + handle +
           '<span class="char-name" title="' + c + '">' + c + '</span>' +
@@ -513,7 +514,7 @@ function renderPlayers() {
         return '<div class="cat-block" data-cat-idx="' + gi + '" data-role="' + role + '"' +
           ' ondragover="catDragOver(event)" ondragleave="catDragLeave(event)" ondrop="catDrop(event,' + gi + ',\'' + role + '\')">' +
           '<div class="cat-label">' + cat.name + '</div>' +
-          '<div class="char-list">' + cat.chars.map(c => makeCharRow(c, false)).join('') + '</div>' +
+          '<div class="char-list">' + cat.chars.map(c => makeCharRow(c, false, cat.name)).join('') + '</div>' +
           '</div>';
       }).join('');
 
@@ -521,7 +522,7 @@ function renderPlayers() {
         '<div class="cat-block cat-other-block" data-role="' + role + '"' +
           ' ondragover="catDragOver(event)" ondragleave="catDragLeave(event)" ondrop="catDropOther(event,\'' + role + '\')">' +
           '<div class="cat-label cat-other">その他 <span style="font-weight:400;font-style:italic;font-size:9px">ドラッグしてカテゴリへ</span></div>' +
-          '<div class="char-list">' + others.map(c => makeCharRow(c, true)).join('') + '</div>' +
+          '<div class="char-list">' + others.map(c => makeCharRow(c, true, '')).join('') + '</div>' +
           '</div>'
         : '';
 
@@ -626,19 +627,21 @@ function renderCatCfg() {
 // ===== DRAG & DROP =====
 let dragChar = null;
 let dragRole = null;
+let dragFromCat = null;
 
 document.addEventListener('dragstart', e => {
-  const row = e.target.closest('.from-other');
+  const row = e.target.closest('.from-other, .from-cat');
   if (!row) return;
   dragChar = row.dataset.char;
   dragRole = row.dataset.role;
+  dragFromCat = row.dataset.fromCat || '';
   setTimeout(() => row.classList.add('dragging'), 0);
 });
 
 document.addEventListener('dragend', e => {
-  const row = e.target.closest('.from-other');
+  const row = e.target.closest('.from-other, .from-cat');
   if (row) row.classList.remove('dragging');
-  dragChar = null; dragRole = null;
+  dragChar = null; dragRole = null; dragFromCat = null;
   document.querySelectorAll('.cat-block').forEach(b => b.classList.remove('drag-over'));
 });
 
@@ -658,6 +661,11 @@ function catDrop(e, catIdx, role) {
   if (!dragChar || dragRole !== role) return;
   const cat = state.categories[catIdx];
   if (!cat) return;
+  // Remove from source category if dragged from one
+  if (dragFromCat) {
+    const srcCat = state.categories.find(c => c.role === role && c.name === dragFromCat);
+    if (srcCat) srcCat.chars = srcCat.chars.filter(c => c !== dragChar);
+  }
   if (!cat.chars.includes(dragChar)) {
     cat.chars.push(dragChar);
   }
@@ -665,10 +673,10 @@ function catDrop(e, catIdx, role) {
 }
 
 function catDropOther(e, role) {
-  // dropping onto その他 = remove from all cats in that role
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   if (!dragChar || dragRole !== role) return;
+  // Remove from all cats in this role -> goes back to その他
   state.categories.filter(c => c.role === role).forEach(cat => {
     cat.chars = cat.chars.filter(c => c !== dragChar);
   });
