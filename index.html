@@ -724,8 +724,8 @@ function renderPlayers() {
           ' oninput="updateName(' + p.id + ',this.value)"' +
           ' onblur="endEditName(' + p.id + ')" />' +
         '<span class="player-score-total">' + sc.total + '</span>' +
-        '<button class="copy-btn" onclick="copyPlayerScore(' + p.id + ',this)" title="スコアをコピー">📋</button>' +
-        '<button class="copy-btn" onclick="showTextExport(' + p.id + ')" title="テキスト出力" style="margin-left:2px">📤</button>' +
+        '<button class="copy-btn" onclick="copyPlayerScore(' + p.id + ',this)">スコアコピー</button>' +
+        '<button class="copy-btn" onclick="showTextExport(' + p.id + ')" style="margin-left:2px">テキスト出力</button>' +
         '<button class="btn btn-danger btn-sm" onclick="removePlayer(' + p.id + ')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
       '</div>' +
       '<div class="player-card-body">' +
