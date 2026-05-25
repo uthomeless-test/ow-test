@@ -1093,7 +1093,6 @@ const RANK_ALIASES = {};
 function parseImportText(text) {
   const aliasMap = buildCharAliasMap();
   const allChars = Object.values(state.chars).flat();
-
   const result = {
     name: null,
     rankIdx: { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 },
@@ -1108,49 +1107,80 @@ function parseImportText(text) {
     'サポート': 'サポート', 'support': 'サポート', 'sup': 'サポート', 'さぽーと': 'サポート'
   };
 
-  const lines = text.split(/[\n,]+/).map(l => l.trim()).filter(Boolean);
+  // 正規化
+  const normalized = text.replace(/[：]/g, ':').replace(/\u3000/g, ' ');
 
-  lines.forEach(line => {
-    // name: xxx
-    const nameMatch = line.match(/^名前[：:]\s*(.+)$/);
-    if (nameMatch) { result.name = nameMatch[1].trim(); return; }
-
-    // role: rank
-    const roleMatch = line.match(/^([^：:]+)[：:]\s*(.+)$/);
-    if (roleMatch) {
-      const key = roleMatch[1].trim().toLowerCase();
-      const val = roleMatch[2].trim();
-      const role = RANK_ROLE_MAP[key] || RANK_ROLE_MAP[roleMatch[1].trim()];
-      if (role) {
-        const rankKey = val.toLowerCase().replace(/\s+/g,'');
-        let rankIdx = RANK_ALIASES[rankKey];
-        if (rankIdx === undefined) rankIdx = RANK_ALIASES[val.toLowerCase()];
-        if (rankIdx === undefined) rankIdx = RANK_ALIASES[val];
-        if (rankIdx !== undefined) {
-          result.rankIdx[role] = rankIdx;
-        } else {
-          result.warnings.push(`ランク「${val}」を認識できませんでした`);
-        }
-        return;
+  // 全トークン抽出: "キー: 値" のペアを全文から取り出す
+  // ランク ("Master 4") と評価 ("5") を区別するため、
+  // まず全ての "何か: 何か" を取り出してから種別判定する
+  // 区切り: 改行、カンマ、または「数字の後ろにスペースが来て、次のトークンがコロンを含む」
+  const segments = [];
+  // 行単位で処理
+  normalized.split('\n').forEach(function(line) {
+    line = line.trim();
+    if (!line) return;
+    // コロンが1つなら1セグメント
+    if ((line.match(/:/g) || []).length <= 1) {
+      segments.push(line);
+      return;
+    }
+    // 複数コロン: "DIGIT SPACE WORD" の境界で分割
+    // 例: "タンク: Master 4 ダメージ: Master 3 ハザード: 2"
+    // → タンク: Master 4 / ダメージ: Master 3 / ハザード: 2
+    var parts = [];
+    var current = '';
+    var tokens = line.split(' ');
+    for (var i = 0; i < tokens.length; i++) {
+      var tok = tokens[i];
+      if (current && tok.indexOf(':') !== -1 && !tok.match(/^\d+$/)) {
+        // 新しいキー開始 (コロンを含み数字だけでない)
+        parts.push(current.trim());
+        current = tok;
+      } else {
+        current += (current ? ' ' : '') + tok;
       }
+    }
+    if (current) parts.push(current.trim());
+    parts.forEach(function(p) { segments.push(p); });
+  });
 
-      // char: rating
-      const charKey = roleMatch[1].trim();
-      const rating = parseInt(val);
-      if (!isNaN(rating) && rating >= 1 && rating <= 5) {
-        // exact match
-        if (aliasMap[charKey]) {
-          result.ratings[aliasMap[charKey]] = rating;
-          return;
-        }
-        // partial match
-        const match = allChars.find(c => c.includes(charKey) || charKey.includes(c.slice(0,2)));
-        if (match) {
-          result.ratings[match] = rating;
-          return;
-        }
-        result.warnings.push(`キャラ「${charKey}」を認識できませんでした`);
+  segments.forEach(function(seg) {
+    if (!seg) return;
+    var colonIdx = seg.indexOf(':');
+    if (colonIdx === -1) return;
+    var key = seg.slice(0, colonIdx).trim();
+    var val = seg.slice(colonIdx + 1).trim();
+    if (!key || !val) return;
+
+    // 名前
+    if (key === '名前') { result.name = val; return; }
+
+    // ロール別ランク
+    var roleKey = key.toLowerCase();
+    var role = RANK_ROLE_MAP[roleKey] || RANK_ROLE_MAP[key];
+    if (role) {
+      var rankKey = val.toLowerCase().replace(/\s+/g, '');
+      var rankIdx = RANK_ALIASES[rankKey];
+      if (rankIdx === undefined) rankIdx = RANK_ALIASES[val.toLowerCase()];
+      if (rankIdx === undefined) rankIdx = RANK_ALIASES[val];
+      if (rankIdx !== undefined) {
+        result.rankIdx[role] = rankIdx;
+      } else {
+        result.warnings.push('ランク「' + val + '」を認識できませんでした');
       }
+      return;
+    }
+
+    // キャラ評価 (値が1-5の整数)
+    var rating = parseInt(val);
+    if (!isNaN(rating) && rating >= 1 && rating <= 5 && String(rating) === val.trim()) {
+      if (aliasMap[key]) { result.ratings[aliasMap[key]] = rating; return; }
+      var matched = allChars.find(function(c) {
+        return c === key || c.includes(key) || key.includes(c) ||
+          c.replace(/[・ー]/g, '').includes(key.replace(/[・ー]/g, ''));
+      });
+      if (matched) { result.ratings[matched] = rating; return; }
+      result.warnings.push('キャラ「' + key + '」を認識できませんでした');
     }
   });
 
