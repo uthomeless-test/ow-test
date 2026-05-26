@@ -303,7 +303,6 @@
     <button class="nav-btn" onclick="showPage('cfg-char',this)">キャラポイント</button>
     <button class="nav-btn" onclick="showPage('cfg-decay',this)">逓減率</button>
     <button class="nav-btn" onclick="showPage('cfg-charmul',this)">キャラ環境補正</button>
-    <button class="nav-btn" onclick="showPage('cfg-tank',this)">タンク判定閾値</button>
     <button class="nav-btn" onclick="showPage('cfg-category',this)">カテゴリ Bonus</button>
     <div class="nav-section">データ</div>
     <button class="nav-btn" onclick="clearSave()" style="color:var(--danger)">🗑 保存データ削除</button>
@@ -392,29 +391,7 @@
       </div>
     </div>
 
-    <!-- Config: Tank Threshold -->
-    <div id="page-cfg-tank" class="page">
-      <div class="page-title">タンク判定閾値</div>
-      <div class="page-sub">「タンク考慮」アルゴリズムで使用。タンクスコアがこの値以上のプレイヤーをタンク担当可能と判定します</div>
-      <div class="card section-gap" style="max-width:420px">
-        <table>
-          <thead><tr><th>設定</th><th style="text-align:right">値</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>タンク担当の最低スコア</td>
-              <td style="text-align:right"><input type="number" class="num-input" id="tank-threshold-input" min="0" step="50" /></td>
-            </tr>
-            <tr>
-              <td>
-                ポイント誤差の許容値
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">この差以内なら多様性を優先。超えたら戦力均衡を優先</div>
-              </td>
-              <td style="text-align:right"><input type="number" class="num-input" id="tolerance-diff-input" min="0" step="50" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+
 
     <!-- Config: Category -->
     <div id="page-cfg-category" class="page">
@@ -462,6 +439,22 @@
           </div>
         </div>
         <div id="team-algo-desc" style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:var(--text)">タンク担当の最低スコア</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">「タンク考慮」モードで使用。タンクスコアがこの値以上のプレイヤーをタンク担当可能と判定します。</div>
+            </div>
+            <input type="number" class="num-input" id="tank-threshold-inline" min="0" step="50" style="width:90px" />
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:var(--text)">ポイント誤差の許容値</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">チームのスコア差がこの値以内なら戦力は均等とみなし、過去に同じチームにならないよう多様性を優先します。超えた場合は戦力均衡を最優先にします。</div>
+            </div>
+            <input type="number" class="num-input" id="tolerance-diff-inline" min="0" step="50" style="width:90px" />
+          </div>
+        </div>
       </div>
 
       <!-- チーム結果 -->
@@ -599,8 +592,7 @@
             <tr><td>キャラポイント</td><td>評価1〜7に対応するポイント値。変更可能です。</td></tr>
             <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「狭く深い」が「広く浅い」を上回るよう設計されています。</td></tr>
             <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど環境に合わせて調整できます。デフォルト1.0。変更したキャラは黄色でハイライトされます。</td></tr>
-            <tr><td>タンク判定閾値</td><td>「タンク考慮」アルゴリズムで使用。タンクスコアがこの値以上のプレイヤーをタンク担当可能と判定します。デフォルト1000。</td></tr>
-            <tr><td>ポイント誤差の許容値</td><td>チームのスコア差がこの値以内なら、戦力は均等とみなして多様性（過去に同じチームにならない）を優先します。デフォルト300。</td></tr>
+            <tr><td>タンク判定閾値・誤差許容値</td><td>チーム分けページの設定カードから変更できます。タンク判定閾値は「タンク考慮」モードで使用。誤差許容値はスコア差がこの値以内なら多様性を優先します。</td></tr>
             <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価4以上のキャラが1体以上いる場合に加算。カテゴリはドラッグで自由に変更できます。</td></tr>
           </tbody>
         </table>
@@ -1530,18 +1522,6 @@ function flashCopied(btn) {
 // ===== TEAM SPLIT =====
 // ============================================================
 
-function renderTankThresholdCfg() {
-  const inp = document.getElementById('tank-threshold-input');
-  if (inp) {
-    inp.value = state.tankThreshold;
-    inp.onchange = function() { state.tankThreshold = +this.value || 0; };
-  }
-  const inp2 = document.getElementById('tolerance-diff-input');
-  if (inp2) {
-    inp2.value = state.toleranceDiff;
-    inp2.onchange = function() { state.toleranceDiff = +this.value || 0; };
-  }
-}
 
 function saveTeamCfg() {
   // 設定はLS非保存（仕様準拠）。ただし参加者選択は session 中保持
@@ -1563,6 +1543,18 @@ function renderTeamsPage() {
   document.querySelectorAll('input[name="team-algo"]').forEach(function(r) {
     r.checked = (r.value === state.teamAlgo);
   });
+  // タンク閾値
+  var thi = document.getElementById('tank-threshold-inline');
+  if (thi) {
+    thi.value = state.tankThreshold;
+    thi.onchange = function() { state.tankThreshold = +this.value || 0; };
+  }
+  // 誤差許容値
+  var tdi = document.getElementById('tolerance-diff-inline');
+  if (tdi) {
+    tdi.value = state.toleranceDiff;
+    tdi.onchange = function() { state.toleranceDiff = +this.value || 0; };
+  }
 }
 
 function renderParticipantsList() {
@@ -2011,7 +2003,6 @@ function showPage(name, btn) {
   if (name==='cfg-char')     renderCharCfg();
   if (name==='cfg-decay')    renderDecayCfg();
   if (name==='cfg-charmul')  renderCharMulCfg();
-  if (name==='cfg-tank')     renderTankThresholdCfg();
   if (name==='cfg-category') renderCatCfg();
 }
 
