@@ -1316,7 +1316,7 @@ function parseImportText(text) {
 
     // キャラ評価 (値が1-5の整数)
     var rating = parseInt(val);
-    if (!isNaN(rating) && rating >= 1 && rating <= 5 && String(rating) === val.trim()) {
+    if (!isNaN(rating) && rating >= 1 && rating <= 7 && String(rating) === val.trim()) {
       if (aliasMap[key]) { result.ratings[aliasMap[key]] = rating; return; }
       var matched = allChars.find(function(c) {
         return c === key || c.includes(key) || key.includes(c) ||
