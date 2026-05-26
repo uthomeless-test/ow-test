@@ -762,7 +762,7 @@ function addPlayer() {
   const ratings = {};
   Object.values(state.chars).flat().forEach(c => ratings[c] = 1);
   const rankIdx = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
-  const newPlayer = { id: id, name: 'Player ' + (id + 1), rankIdx: rankIdx, ratings: ratings };
+  const newPlayer = { id: id, name: 'Player ' + state.nextId, rankIdx: rankIdx, ratings: ratings };
   state.players.push(newPlayer);
   state.participants[String(id)] = true;
   renderPlayers(); renderSummary();
