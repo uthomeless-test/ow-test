@@ -841,7 +841,7 @@ function renderPlayers() {
       const opts = state.ranks.map((r,i) => '<option value="' + i + '"' + (i===p.rankIdx[role]?' selected':'') + '>' + r.label + '</option>').join('');
       return '<div class="role-rank-block">' +
         '<div class="role-rank-label ' + st.labelCls + '">' + role + '</div>' +
-        '<select class="rank-sel" onchange="updateRank(' + p.id + ',\'' + role + '\',this.value)">' + opts + '</select>' +
+        '<select class="rank-sel" onchange="updateRank(\'' + p.id + '\',\'' + role + '\',this.value)">' + opts + '</select>' +
         '</div>';
     }).join('');
 
@@ -856,7 +856,7 @@ function renderPlayers() {
         '<div class="rsb-label">' + x.role + '</div>' +
         '<div class="rsb-val">' + x.sc.total + '</div>' +
         '<div class="rsb-detail">' + x.sc.rankPt + ' + ' + x.sc.charPt + catStr + '</div>' +
-        '<button class="detail-btn ' + x.btnCls + '" style="margin-top:4px" onclick="showDetail(' + p.id + ',&apos;' + x.role + '&apos;)">詳細</button>' +
+        '<button class="detail-btn ' + x.btnCls + '" style="margin-top:4px" onclick="showDetail(\'' + p.id + '\',&apos;' + x.role + '&apos;)">詳細</button>' +
         '</div>';
     }).join('');
 
@@ -893,7 +893,7 @@ function renderPlayers() {
         const handle = '<span class="drag-handle" title="ドラッグして移動">⠿</span>';
         const dragAttrs = ' draggable="true" data-char="' + esc + '" data-role="' + role + '" data-from-cat="' + escCat + '"';
         const rowCls = fromOther ? ' from-other' : ' from-cat';
-        const btns = [1,2,3,4,5,6,7].map(v => '<button class="r-btn' + (rating>=v?' on':'') + '" onclick="updateRating(' + p.id + ',\'' + esc + '\',' + v + ')">' + v + '</button>').join('');
+        const btns = [1,2,3,4,5,6,7].map(v => '<button class="r-btn' + (rating>=v?' on':'') + '" onclick="updateRating(\'' + p.id + '\',\'' + esc + '\',' + v + ')">' + v + '</button>').join('');
         return '<div class="char-row' + rowCls + '"' + dragAttrs + '>' + handle +
           '<span class="char-name" title="' + c + '">' + c + '</span>' +
           '<div class="rating-btns">' + btns + '</div>' +
@@ -926,16 +926,16 @@ function renderPlayers() {
     card.innerHTML =
       '<div class="player-card-header">' +
         '<div class="player-avatar">' + initials + '</div>' +
-        '<span class="player-name-display" id="name-display-' + p.id + '" onclick="startEditName(' + p.id + ')">' +
+        '<span class="player-name-display" id="name-display-' + p.id + '" onclick="startEditName(\'' + p.id + '\')">' +
           p.name + '<span class="edit-icon">✏</span></span>' +
         '<input class="player-name-inp player-name-edit" id="name-input-' + p.id + '" type="text" value="' + p.name + '" placeholder="名前"' +
           ' data-pid="' + p.id + '"' +
-          ' oninput="updateName(' + p.id + ',this.value)"' +
-          ' onblur="endEditName(' + p.id + ')" />' +
+          ' oninput="updateName(\'' + p.id + '\',this.value)"' +
+          ' onblur="endEditName(\'' + p.id + '\')" />' +
         '<span class="player-score-total">' + sc.total + '</span>' +
-        '<button class="copy-btn" onclick="copyPlayerScore(' + p.id + ',this)">スコアコピー</button>' +
-        '<button class="copy-btn" onclick="showTextExport(' + p.id + ')" style="margin-left:2px">テキスト出力</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="removePlayer(' + p.id + ')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
+        '<button class="copy-btn" onclick="copyPlayerScore(\'' + p.id + '\',this)">スコアコピー</button>' +
+        '<button class="copy-btn" onclick="showTextExport(\'' + p.id + '\')" style="margin-left:2px">テキスト出力</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="removePlayer(\'' + p.id + '\')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
       '</div>' +
       '<div class="player-card-body">' +
         '<div class="role-ranks">' + rankSelHtml + '</div>' +
@@ -961,13 +961,13 @@ function renderSummary() {
           '<td style="font-weight:600">' + p.name + '</td>' +
           '<td><span class="role-score-cell cell-tank">' + sc.tank.total + '</span>' +
             '<span style="font-size:10px;color:var(--text3);margin-left:4px">' + state.ranks[p.rankIdx['タンク']].label + '</span>' +
-            '<button class="detail-btn detail-btn-tank" style="margin-left:6px" onclick="showDetail(' + p.id + ',&apos;タンク&apos;)">詳細</button></td>' +
+            '<button class="detail-btn detail-btn-tank" style="margin-left:6px" onclick="showDetail(\'' + p.id + '\',&apos;タンク&apos;)">詳細</button></td>' +
           '<td><span class="role-score-cell cell-dps">' + sc.dps.total + '</span>' +
             '<span style="font-size:10px;color:var(--text3);margin-left:4px">' + state.ranks[p.rankIdx['ダメージ']].label + '</span>' +
-            '<button class="detail-btn detail-btn-dps" style="margin-left:6px" onclick="showDetail(' + p.id + ',&apos;ダメージ&apos;)">詳細</button></td>' +
+            '<button class="detail-btn detail-btn-dps" style="margin-left:6px" onclick="showDetail(\'' + p.id + '\',&apos;ダメージ&apos;)">詳細</button></td>' +
           '<td><span class="role-score-cell cell-sup">' + sc.sup.total + '</span>' +
             '<span style="font-size:10px;color:var(--text3);margin-left:4px">' + state.ranks[p.rankIdx['サポート']].label + '</span>' +
-            '<button class="detail-btn detail-btn-sup" style="margin-left:6px" onclick="showDetail(' + p.id + ',&apos;サポート&apos;)">詳細</button></td>' +
+            '<button class="detail-btn detail-btn-sup" style="margin-left:6px" onclick="showDetail(\'' + p.id + '\',&apos;サポート&apos;)">詳細</button></td>' +
           '<td class="cell-total">' + sc.total + '<span class="diff-badge ' + cls + '">' + (diff===0?'TOP':'-'+diff) + '</span></td>' +
           '</tr>';
       }).join('')
@@ -2132,6 +2132,8 @@ function saveState() {
 
 // clearSave
 function clearSave() {
+  const pw = prompt('管理者パスワードを入力してください：');
+  if (pw !== 'ow') { alert('パスワードが違います'); return; }
   if (!confirm('全プレイヤーデータをサーバーから削除しますか？この操作は全員に影響します。')) return;
   sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000').then(function() {
     state.players = [];
