@@ -1347,7 +1347,20 @@ function clearSave() {
   location.reload();
 }
 
-// Init
+// Init: v2→v3 マイグレーション（プレイヤーデータのみ引き継ぎ）
+(function migrate() {
+  try {
+    if (localStorage.getItem(SAVE_KEY)) return; // v3データが既にあればスキップ
+    const old = localStorage.getItem('ow_match_v1') || localStorage.getItem('ow_match_v2');
+    if (!old) return;
+    const data = JSON.parse(old);
+    if (data.players && data.players.length > 0) {
+      const migrated = { players: data.players, nextId: data.nextId || data.players.length };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(migrated));
+    }
+  } catch(e) {}
+})();
+
 const loaded = loadState();
 if (loaded && state.players.length > 0) {
   renderPlayers();
