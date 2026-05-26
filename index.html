@@ -346,7 +346,7 @@
     <!-- Config: Category -->
     <div id="page-cfg-category" class="page">
       <div class="page-title">カテゴリ Bonus 設定</div>
-      <div class="page-sub">カテゴリ内に評価3以上のキャラが1体以上いる場合に加算されます</div>
+      <div class="page-sub">カテゴリ内に評価4以上のキャラが1体以上いる場合に加算されます</div>
       <div class="card section-gap">
         <table><thead><tr><th>ロール</th><th>カテゴリ</th><th>対象キャラ</th><th style="text-align:right">Bonus</th></tr></thead>
         <tbody id="cat-cfg-tbody"></tbody></table>
@@ -362,6 +362,7 @@
         <h3>🎯 このツールについて</h3>
         <p>プレイヤーのランクとキャラクター習熟度からスコアを算出し、カスタムマッチのチーム分けを均等にするためのツールです。</p>
         <p>スコアは <strong>ランクポイント + キャラポイント（逓減込み）+ カテゴリBonus</strong> の合計で計算されます。</p>
+        <div class="howto-note">入力データはブラウザに自動保存されます。次回同じブラウザで開くと自動で復元されます。サイドバー下部の「🗑 保存データ削除」で初期化できます。</div>
       </div>
 
       <div class="card howto-section">
@@ -373,70 +374,56 @@
           </div>
           <div class="howto-step">
             <div class="step-num">2</div>
-            <div class="step-body">名前をクリックすると編集できます。確定は <strong>Enter</strong> または外側をクリック。</div>
+            <div class="step-body">名前部分をクリックすると編集できます。確定は <strong>Enter</strong> または外側をクリック。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">3</div>
-            <div class="step-body"><strong>タンク・ダメージ・サポート</strong>それぞれのランクをプルダウンで選択してください。ロールによってランクが違う場合も個別に設定できます。</div>
+            <div class="step-body"><strong>タンク・ダメージ・サポート</strong>それぞれのランクをプルダウンで選択します。ロールによってランクが異なる場合も個別に設定できます。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">4</div>
-            <div class="step-body">各キャラクターの評価を <strong>1〜5</strong> で入力します。</div>
+            <div class="step-body">各キャラクターの評価を <strong>1〜7</strong> で入力します。デフォルトは全キャラ1（出さない）です。</div>
           </div>
         </div>
         <table class="howto-table" style="margin-top:12px">
-          <thead><tr><th>評価</th><th>意味</th></tr></thead>
+          <thead><tr><th>評価</th><th>意味</th><th style="text-align:right">ポイント</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>出さない（デフォルト、入力不要）</td></tr>
-            <tr><td>2</td><td>状況限定で出す</td></tr>
-            <tr><td>3</td><td>状況次第で積極採用</td></tr>
-            <tr><td>4</td><td>よく使う</td></tr>
-            <tr><td>5</td><td>メインピック</td></tr>
+            <tr><td>1</td><td>使えない / 出さない（デフォルト）</td><td style="text-align:right">0</td></tr>
+            <tr><td>2</td><td>一応触れる</td><td style="text-align:right">2</td></tr>
+            <tr><td>3</td><td>状況次第で出す</td><td style="text-align:right">10</td></tr>
+            <tr><td>4</td><td>状況次第で積極採用</td><td style="text-align:right">25</td></tr>
+            <tr><td>5</td><td>強く使える / よく使う</td><td style="text-align:right">30</td></tr>
+            <tr><td>6</td><td>次点メイン</td><td style="text-align:right">35</td></tr>
+            <tr><td>7</td><td>メインピック</td><td style="text-align:right">40</td></tr>
           </tbody>
         </table>
-        <div class="howto-note">評価1のキャラはポイントに影響しません。よく使うキャラのみ入力すればOKです。</div>
+        <div class="howto-note">評価1・2のキャラはポイントが低いため、使えるキャラを中心に入力すればOKです。キャラはカテゴリ別に分類されています。⠿ ハンドルをドラッグして別カテゴリに移動させることもできます。</div>
       </div>
 
       <div class="card howto-section">
         <h3>📋 テキストから追加</h3>
-        <p>「📋 テキストから追加」ボタンを使うと、テキストを貼り付けてプレイヤーを一括入力できます。</p>
+        <p>「テキストから追加」ボタンを使うと、テキストを貼り付けてプレイヤーを一括入力できます。「テキスト出力」で出力したテキストをそのまま貼り付ければ再インポートできます。</p>
         <p>フォーマット例：</p>
         <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-family:monospace;font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.8">
           名前: 田中<br>
-          タンク: Gold 5<br>
-          ダメージ: Master 5<br>
-          サポート: Platinum 3<br>
-          アナ: 5　キリコ: 5　バティスト: 4<br>
-          ゲンジ: 4　トレーサー: 3
+          タンク: Gold 5　ダメージ: Master 5　サポート: Platinum 3<br>
+          アナ: 7　キリコ: 6　バティスト: 5　ゲンジ: 4　トレーサー: 3
         </div>
-        <div class="howto-note">名前・ランクは省略可能。評価2以上のキャラのみ書けばOKです。キャラ名は略称でも認識されます（例: ソルジャー: 5、ヴェン: 2）。</div>
+        <div class="howto-note">名前・ランクは省略可能。評価2以上のキャラのみ書けばOKです。1行にスペース区切りで並べても認識されます。キャラ名は略称でも可（例: ソルジャー: 5、ヴェン: 3）。</div>
       </div>
 
       <div class="card howto-section">
-        <h3>📤 テキスト出力とコピーボタンの使い方</h3>
-        <p>プレイヤーカードのヘッダーには3つのボタンがあります：</p>
-        <div class="howto-steps">
-          <div class="howto-step">
-            <div class="step-num" style="background:var(--text2)">📋</div>
-            <div class="step-body"><strong>スコアコピー</strong>：計算後のスコア（タンク/ダメージ/サポート/総合）をクリップボードにコピーします。Discordや他のテキストに貼り付けて共有するのに使います。</div>
-          </div>
-          <div class="howto-step">
-            <div class="step-num" style="background:var(--text2)">📤</div>
-            <div class="step-body"><strong>テキスト出力</strong>：入力内容（ランク・キャラ評価）をテキスト形式で表示します。このテキストは「テキストから追加」にそのまま貼り付けて再インポートできます。次回セッションへの引き継ぎや他の人への共有に使います。</div>
-          </div>
-          <div class="howto-step">
-            <div class="step-num" style="background:var(--danger)">✕</div>
-            <div class="step-body"><strong>削除</strong>：そのプレイヤーのカードを削除します。</div>
-          </div>
-        </div>
-        <div class="howto-note">入力データはブラウザに自動保存されます。次回同じブラウザで開くと自動で復元されます。</div>
-      </div>
-
-      <div class="card howto-section">
-        <h3>📊 スコア比較</h3>
-        <p>「スコア比較」ページで全プレイヤーのスコアを一覧できます。</p>
-        <p><strong>「📋 全員コピー」</strong>ボタンで全員のスコアを表形式でコピーできます。Discordに貼り付けてチーム分けの参考にしてください。</p>
-        <p>各ロールのスコアセルにある<strong>「詳細」</strong>ボタンを押すと、ランクPt・キャラPt・カテゴリBonusの内訳を確認できます。</p>
+        <h3>🔘 ボタンの説明</h3>
+        <table class="howto-table">
+          <thead><tr><th>ボタン</th><th>場所</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>スコアコピー</td><td>プレイヤーカード</td><td>計算後のスコア（タンク / ダメージ / サポート / 総合）をクリップボードにコピーします。Discordへの貼り付けに使います。</td></tr>
+            <tr><td>テキスト出力</td><td>プレイヤーカード</td><td>入力内容（ランク・キャラ評価）をテキスト形式で表示します。「テキストから追加」にそのまま貼り付けて再インポートできます。</td></tr>
+            <tr><td>✕</td><td>プレイヤーカード</td><td>そのプレイヤーのカードを削除します。</td></tr>
+            <tr><td>全員コピー</td><td>スコア比較</td><td>全プレイヤーのスコアを表形式でコピーします。</td></tr>
+            <tr><td>詳細</td><td>スコア比較</td><td>ランクPt・キャラPt・カテゴリBonusの内訳を確認できます。</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <div class="card howto-section">
@@ -444,11 +431,11 @@
         <table class="howto-table">
           <thead><tr><th>設定項目</th><th>内容</th></tr></thead>
           <tbody>
-            <tr><td>ランクポイント</td><td>各ランクに対応するポイント値。上位帯ほど差が大きい指数型になっています。</td></tr>
-            <tr><td>キャラポイント</td><td>評価1〜5に対応するポイント値。</td></tr>
-            <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「広く浅い」より「狭く深い」が有利になるよう設計されています。</td></tr>
-            <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど、環境に合わせて調整できます。デフォルト1.0。</td></tr>
-            <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価3以上のキャラが1体以上いる場合に加算。</td></tr>
+            <tr><td>ランクポイント</td><td>各ランクに対応するポイント値。上位帯ほど差が大きくなっています。</td></tr>
+            <tr><td>キャラポイント</td><td>評価1〜7に対応するポイント値。変更可能です。</td></tr>
+            <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「狭く深い」が「広く浅い」を上回るよう設計されています。</td></tr>
+            <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど環境に合わせて調整できます。デフォルト1.0。変更したキャラは黄色でハイライトされます。</td></tr>
+            <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価4以上のキャラが1体以上いる場合に加算。カテゴリはドラッグで自由に変更できます。</td></tr>
           </tbody>
         </table>
       </div>
@@ -473,11 +460,13 @@ const state = {
     {label:'Champion',pt:3000}
   ],
   charPts: [
-    {rating:1,label:'出さない',pt:0},
-    {rating:2,label:'状況限定',pt:5},
-    {rating:3,label:'状況次第で採用',pt:10},
-    {rating:4,label:'よく使う',pt:30},
-    {rating:5,label:'メインピック',pt:50}
+    {rating:1,label:'使えない / 出さない',pt:0},
+    {rating:2,label:'一応触れる',pt:2},
+    {rating:3,label:'状況次第で出す',pt:10},
+    {rating:4,label:'状況次第で積極採用',pt:25},
+    {rating:5,label:'強く使える / よく使う',pt:30},
+    {rating:6,label:'次点メイン',pt:35},
+    {rating:7,label:'メインピック',pt:40}
   ],
   decay: [
     {pos:'1体目',rate:1.0},
@@ -551,7 +540,7 @@ function calcRoleScore(p, role) {
   state.categories.filter(c => c.role === role).forEach(cat => {
     const key = cat.name;
     if (applied.has(key)) return;
-    if (cat.chars.some(c => (p.ratings[c] || 1) >= 3)) { catBonus += cat.bonus; applied.add(key); }
+    if (cat.chars.some(c => (p.ratings[c] || 1) >= 4)) { catBonus += cat.bonus; applied.add(key); }
   });
   return { rankPt, charPt, catBonus, total: rankPt + charPt + catBonus };
 }
@@ -659,13 +648,17 @@ function renderPlayers() {
     const legendHtml = '<div class="rating-legend">' +
       '<span class="legend-item"><span class="legend-num">1</span>出さない</span>' +
       '<span class="legend-sep">·</span>' +
-      '<span class="legend-item"><span class="legend-num">2</span>状況限定</span>' +
+      '<span class="legend-item"><span class="legend-num">2</span>一応触れる</span>' +
       '<span class="legend-sep">·</span>' +
-      '<span class="legend-item"><span class="legend-num">3</span>状況次第で採用</span>' +
+      '<span class="legend-item"><span class="legend-num">3</span>状況次第で出す</span>' +
       '<span class="legend-sep">·</span>' +
-      '<span class="legend-item"><span class="legend-num">4</span>よく使う</span>' +
+      '<span class="legend-item"><span class="legend-num">4</span>状況次第で積極採用</span>' +
       '<span class="legend-sep">·</span>' +
-      '<span class="legend-item"><span class="legend-num">5</span>メインピック</span>' +
+      '<span class="legend-item"><span class="legend-num">5</span>強く使える</span>' +
+      '<span class="legend-sep">·</span>' +
+      '<span class="legend-item"><span class="legend-num">6</span>次点メイン</span>' +
+      '<span class="legend-sep">·</span>' +
+      '<span class="legend-item"><span class="legend-num">7</span>メインピック</span>' +
       '</div>';
 
     // キャラ評価（ロール→カテゴリ→キャラ）
@@ -684,7 +677,7 @@ function renderPlayers() {
         const handle = '<span class="drag-handle" title="ドラッグして移動">⠿</span>';
         const dragAttrs = ' draggable="true" data-char="' + esc + '" data-role="' + role + '" data-from-cat="' + escCat + '"';
         const rowCls = fromOther ? ' from-other' : ' from-cat';
-        const btns = [1,2,3,4,5].map(v => '<button class="r-btn' + (rating>=v?' on':'') + '" onclick="updateRating(' + p.id + ',\'' + esc + '\',' + v + ')">' + v + '</button>').join('');
+        const btns = [1,2,3,4,5,6,7].map(v => '<button class="r-btn' + (rating>=v?' on':'') + '" onclick="updateRating(' + p.id + ',\'' + esc + '\',' + v + ')">' + v + '</button>').join('');
         return '<div class="char-row' + rowCls + '"' + dragAttrs + '>' + handle +
           '<span class="char-name" title="' + c + '">' + c + '</span>' +
           '<div class="rating-btns">' + btns + '</div>' +
@@ -947,7 +940,7 @@ function buildDetailHtml(p, role) {
   const appliedKeys = new Set();
   roleCats.forEach(cat => {
     if (appliedKeys.has(cat.name)) return;
-    const qualChars = cat.chars.filter(c => (p.ratings[c] || 1) >= 3);
+    const qualChars = cat.chars.filter(c => (p.ratings[c] || 1) >= 4);
     if (qualChars.length > 0) {
       appliedCats.push({ name: cat.name, bonus: cat.bonus, chars: qualChars });
       appliedKeys.add(cat.name);
@@ -977,7 +970,7 @@ function buildDetailHtml(p, role) {
     ${appliedCats.length ? (
       '<div class="detail-section">' +
       '<div class="detail-section-title">カテゴリ Bonus（合計: +' + catTotal + '）</div>' +
-      '<div class="detail-formula">カテゴリ内に評価3以上のキャラが1体以上いる場合に加算</div>' +
+      '<div class="detail-formula">カテゴリ内に評価4以上のキャラが1体以上いる場合に加算</div>' +
       appliedCats.map(c =>
         '<div class="detail-row cat-bonus-row">' +
         '<span class="detail-row-name">' + c.name + ' <span style="font-size:10px;color:var(--text3)">（' + c.chars.join('・') + '）</span></span>' +
