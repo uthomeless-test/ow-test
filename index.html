@@ -1759,7 +1759,12 @@ function splitTeams(players, perTeam, algo) {
     var diff = Math.abs(sumA - sumB);
     var tankCountA = teamA.filter(function(x){return x.tank >= state.tankThreshold;}).length;
     var tankCountB = teamB.filter(function(x){return x.tank >= state.tankThreshold;}).length;
-    var tankOK = tankCountA >= 3 && tankCountB >= 3;
+    // タンク担当者数に応じて要件を緩和
+    // 合計6人以上いれば各3人以上、それ未満は差が1以内で均等ならOK
+    var totalTankPlayers = scored.filter(function(x){return x.tank >= state.tankThreshold;}).length;
+    var tankOK = totalTankPlayers >= 6
+      ? (tankCountA >= 3 && tankCountB >= 3)
+      : (Math.abs(tankCountA - tankCountB) <= 1);
     var pen = pairPenalty(teamA) + pairPenalty(teamB);
 
     var candidate = {
@@ -1797,7 +1802,10 @@ function evalSplit(teamA, teamB, algo, pairPenaltyFn) {
   // タンク要件チェック
   const tankCountA = teamA.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
   const tankCountB = teamB.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
-  const tankOK = (tankCountA >= 3 && tankCountB >= 3);
+  const totalTankPlayers = teamA.concat(teamB).filter(function(x){return x.tank >= state.tankThreshold;}).length;
+  const tankOK = totalTankPlayers >= 6
+    ? (tankCountA >= 3 && tankCountB >= 3)
+    : (Math.abs(tankCountA - tankCountB) <= 1);
 
   // 多様性ペナルティ（履歴上同じチームだった回数）
   const pairPen = pairPenaltyFn(teamA) + pairPenaltyFn(teamB);
