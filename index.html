@@ -2056,7 +2056,7 @@ async function loadFromSupabase() {
       return {
         id:      row.id,
         name:    row.name || 'Player',
-        rankIdx: { 'タンク': row.rank_tank || 10, 'ダメージ': row.rank_dps || 10, 'サポート': row.rank_sup || 10 },
+        rankIdx: { 'タンク': row.rank_tank != null ? row.rank_tank : 10, 'ダメージ': row.rank_dps != null ? row.rank_dps : 10, 'サポート': row.rank_sup != null ? row.rank_sup : 10 },
         ratings: row.ratings || {}
       };
     });
