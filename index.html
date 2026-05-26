@@ -1638,8 +1638,8 @@ function rerollTeamSplit() {
 }
 
 // メインのチーム分けアルゴリズム
-// state.candidatePool: 全候補リスト（チーム分けボタン押下時に生成）
-// state.candidateIndex: 現在表示中の候補インデックス
+// state.candidatePool: 許容範囲内の候補リスト
+// state.candidateIndex: 現在表示中のインデックス
 
 function buildCandidatePool(players, perTeam, algo) {
   var scored = players.map(function(p) {
@@ -1648,26 +1648,20 @@ function buildCandidatePool(players, perTeam, algo) {
   });
 
   var totalTankPlayers = scored.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
-
-  // C(n, k) の全組み合わせをインデックスで列挙
   var n = scored.length;
-  var k = perTeam;
   var pool = [];
+  var fallback = null;
   var seen = {};
 
   function combinations(start, chosen) {
-    if (chosen.length === k) {
+    if (chosen.length === perTeam) {
       var teamA = chosen.map(function(i) { return scored[i]; });
-      var teamB = scored.filter(function(x) { return chosen.indexOf(scored.indexOf(x)) === -1; });
-
-      // IDベースでteamBを確定
-      var teamAIds = chosen.slice().sort(function(a,b){return a-b;});
       var allIdx = [];
       for (var i = 0; i < n; i++) allIdx.push(i);
       var teamBIdx = allIdx.filter(function(i) { return chosen.indexOf(i) === -1; });
-      teamB = teamBIdx.map(function(i) { return scored[i]; });
+      var teamB = teamBIdx.map(function(i) { return scored[i]; });
 
-      var keyA = teamAIds.join(',');
+      var keyA = chosen.slice().sort(function(a,b){return a-b;}).join(',');
       var keyB = teamBIdx.slice().sort(function(a,b){return a-b;}).join(',');
       var comboKey = keyA < keyB ? keyA + '|' + keyB : keyB + '|' + keyA;
       if (seen[comboKey]) return;
@@ -1682,10 +1676,15 @@ function buildCandidatePool(players, perTeam, algo) {
       var tankOK = totalTankPlayers >= 6
         ? (tankCountA >= 3 && tankCountB >= 3)
         : (Math.abs(tankCountA - tankCountB) <= 1);
-
       var tankFail = (algo === 'tank' && !tankOK);
+
       if (!tankFail) {
-        pool.push({ teamA: teamA, teamB: teamB, diff: diff, tankOK: tankOK });
+        var candidate = { teamA: teamA, teamB: teamB, diff: diff, tankOK: tankOK };
+        if (diff <= state.toleranceDiff) {
+          pool.push(candidate);
+        } else {
+          if (!fallback || diff < fallback.diff) fallback = candidate;
+        }
       }
       return;
     }
@@ -1698,9 +1697,31 @@ function buildCandidatePool(players, perTeam, algo) {
 
   combinations(0, []);
 
-  // スコア差が小さい順にソート
+  // 許容範囲内をスコア差順にソート
   pool.sort(function(a, b) { return a.diff - b.diff; });
+
+  // 1件もなければfallbackを返す
+  if (pool.length === 0 && fallback) pool.push(fallback);
+
   return pool;
+}
+
+function splitTeams(players, perTeam, algo) {
+  state.candidatePool = buildCandidatePool(players, perTeam, algo);
+  state.candidateIndex = 0;
+  return getCandidate();
+}
+
+function getCandidate() {
+  var pool = state.candidatePool;
+  if (!pool || pool.length === 0) {
+    return { teamA: [], teamB: [], diff: 0, tankOK: false, poolSize: 0 };
+  }
+  var idx = ((state.candidateIndex % pool.length) + pool.length) % pool.length;
+  var c = pool[idx];
+  c.poolSize = pool.length;
+  c.currentIndex = idx + 1;
+  return c;
 }
 
 function splitTeams(players, perTeam, algo) {
@@ -1826,42 +1847,66 @@ function renderTeamResult() {
 }
 
 function setupTeamDragDrop() {
-  let dragId = null;
-  let dragFromTeam = null;
+  var dragId = null;
+  var dragFromTeam = null;
+
+  // メンバー要素にdragstart/dragend
   document.querySelectorAll('.team-member').forEach(function(el) {
     el.addEventListener('dragstart', function(e) {
-      dragId = +el.dataset.pid;
+      dragId = el.dataset.pid;
       dragFromTeam = el.dataset.team;
       el.style.opacity = '0.4';
+      el.style.outline = '2px dashed var(--accent)';
     });
     el.addEventListener('dragend', function(e) {
+      dragId = null;
+      dragFromTeam = null;
       el.style.opacity = '';
+      el.style.outline = '';
+      // 全ハイライト解除
+      document.querySelectorAll('.team-member').forEach(function(m) {
+        m.style.background = '';
+        m.style.outline = '';
+      });
     });
-  });
-  const cards = document.querySelectorAll('#team-cards > .card');
-  cards.forEach(function(card, idx) {
-    const teamLabel = idx === 0 ? 'チームA' : 'チームB';
-    card.addEventListener('dragover', function(e) { e.preventDefault(); });
-    card.addEventListener('drop', function(e) {
+    // 自分の上にドラッグオーバーされたときハイライト（相手チームのみ）
+    el.addEventListener('dragover', function(e) {
       e.preventDefault();
-      if (dragId === null || dragFromTeam === teamLabel) return;
-      const r = state.currentTeams;
+      if (dragFromTeam && el.dataset.team !== dragFromTeam) {
+        el.style.background = 'var(--accent-light)';
+        el.style.outline = '2px solid var(--accent)';
+      }
+    });
+    el.addEventListener('dragleave', function(e) {
+      el.style.background = '';
+      el.style.outline = '';
+    });
+    // メンバー上にドロップ → そのメンバーとSwap
+    el.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      el.style.background = '';
+      el.style.outline = '';
+      if (!dragId || el.dataset.team === dragFromTeam) return;
+      var r = state.currentTeams;
       if (!r) return;
-      const fromArr = dragFromTeam === 'チームA' ? r.teamA : r.teamB;
-      const toArr   = teamLabel === 'チームA' ? r.teamA : r.teamB;
-      const idx = fromArr.findIndex(function(x) { return x.id === dragId; });
-      if (idx === -1) return;
-      // swap で人数を保つ: toArr の最初の人と入れ替え
-      // ただし手動調整なので「単純移動」も許容したい → 移動先カードのリストへ移動
-      // 人数バランス維持のため、相手チームの誰かと入れ替える必要がある
-      // 簡易: 移動先で対応する位置の人を移動元に動かす
-      const targetIdx = 0; // 単純に先頭と入れ替え
-      const a = fromArr.splice(idx, 1)[0];
-      const b = toArr.splice(targetIdx, 1)[0];
-      fromArr.splice(idx, 0, b);
-      toArr.push(a);
+      var fromArr = dragFromTeam === 'チームA' ? r.teamA : r.teamB;
+      var toArr   = el.dataset.team === 'チームA' ? r.teamA : r.teamB;
+      var fromIdx = fromArr.findIndex(function(x) { return String(x.id) === String(dragId); });
+      var toIdx   = toArr.findIndex(function(x) { return String(x.id) === String(el.dataset.pid); });
+      if (fromIdx === -1 || toIdx === -1) return;
+      // Swap
+      var tmp = fromArr[fromIdx];
+      fromArr[fromIdx] = toArr[toIdx];
+      toArr[toIdx] = tmp;
       renderTeamResult();
     });
+  });
+
+  // カード全体へのドロップ（メンバー以外の空白部分に落としたとき）は無視
+  document.querySelectorAll('#team-cards > .card').forEach(function(card) {
+    card.addEventListener('dragover', function(e) { e.preventDefault(); });
+    card.addEventListener('drop', function(e) { e.preventDefault(); });
   });
 }
 
