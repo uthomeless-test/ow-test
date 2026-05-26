@@ -251,11 +251,13 @@
     <button class="nav-btn" onclick="showPage('howto',this)">📖 使い方</button>
     <button class="nav-btn active" onclick="showPage('players',this)">プレイヤー入力</button>
     <button class="nav-btn" onclick="showPage('summary',this)">スコア比較</button>
+    <button class="nav-btn" onclick="showPage('teams',this)">🎯 チーム分け</button>
     <div class="nav-section">設定</div>
     <button class="nav-btn" onclick="showPage('cfg-rank',this)">ランクポイント</button>
     <button class="nav-btn" onclick="showPage('cfg-char',this)">キャラポイント</button>
     <button class="nav-btn" onclick="showPage('cfg-decay',this)">逓減率</button>
     <button class="nav-btn" onclick="showPage('cfg-charmul',this)">キャラ環境補正</button>
+    <button class="nav-btn" onclick="showPage('cfg-tank',this)">タンク判定閾値</button>
     <button class="nav-btn" onclick="showPage('cfg-category',this)">カテゴリ Bonus</button>
     <div class="nav-section">データ</div>
     <button class="nav-btn" onclick="clearSave()" style="color:var(--danger)">🗑 保存データ削除</button>
@@ -343,6 +345,21 @@
       </div>
     </div>
 
+    <!-- Config: Tank Threshold -->
+    <div id="page-cfg-tank" class="page">
+      <div class="page-title">タンク判定閾値</div>
+      <div class="page-sub">「タンク考慮」アルゴリズムで使用。タンクスコアがこの値以上のプレイヤーをタンク担当可能と判定します</div>
+      <div class="card section-gap" style="max-width:420px">
+        <table>
+          <thead><tr><th>閾値</th><th style="text-align:right">値</th></tr></thead>
+          <tbody><tr>
+            <td>タンク担当の最低スコア</td>
+            <td style="text-align:right"><input type="number" class="num-input" id="tank-threshold-input" min="0" step="50" /></td>
+          </tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Config: Category -->
     <div id="page-cfg-category" class="page">
       <div class="page-title">カテゴリ Bonus 設定</div>
@@ -351,6 +368,58 @@
         <table><thead><tr><th>ロール</th><th>カテゴリ</th><th>対象キャラ</th><th style="text-align:right">Bonus</th></tr></thead>
         <tbody id="cat-cfg-tbody"></tbody></table>
       </div>
+    </div>
+
+    <!-- Teams -->
+    <div id="page-teams" class="page">
+      <div class="page-title">🎯 チーム分け</div>
+      <div class="page-sub">参加者を選択して、戦力が均等になるようチーム分けを行います</div>
+
+      <!-- 参加者選択 -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">参加者選択 <span id="participant-count" style="color:var(--text3);font-weight:400;margin-left:6px"></span></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="toggleAllParticipants(true)">全選択</button>
+            <button class="btn btn-sm" onclick="toggleAllParticipants(false)">全解除</button>
+          </div>
+        </div>
+        <div id="participants-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px"></div>
+      </div>
+
+      <!-- チーム分け設定 -->
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">チーム分け設定</div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+          <div>
+            <span style="font-size:12px;color:var(--text2);margin-right:8px">人数</span>
+            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-mode" value="5" checked onchange="state.teamMode=5;saveTeamCfg();"> 5v5</label>
+            <label style="font-size:13px"><input type="radio" name="team-mode" value="6" onchange="state.teamMode=6;saveTeamCfg();"> 6v6</label>
+          </div>
+          <div>
+            <span style="font-size:12px;color:var(--text2);margin-right:8px">アルゴリズム</span>
+            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-algo" value="balance" checked onchange="state.teamAlgo='balance';saveTeamCfg();"> 総合力均等</label>
+            <label style="font-size:13px"><input type="radio" name="team-algo" value="tank" onchange="state.teamAlgo='tank';saveTeamCfg();"> タンク考慮</label>
+          </div>
+          <div style="flex:1;text-align:right">
+            <button class="btn btn-primary" onclick="runTeamSplit()">自動チーム分け</button>
+          </div>
+        </div>
+        <div id="team-algo-desc" style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5"></div>
+      </div>
+
+      <!-- チーム結果 -->
+      <div id="team-result-area"></div>
+
+      <!-- 履歴 -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">チーム分け履歴 <span id="history-count" style="color:var(--text3);font-weight:400;margin-left:6px"></span></div>
+          <button class="btn btn-sm btn-danger" onclick="resetHistory()">履歴をリセット</button>
+        </div>
+        <div id="history-list" style="font-size:12px;color:var(--text2)"></div>
+      </div>
+
     </div>
 
     <!-- Howto -->
@@ -427,6 +496,45 @@
       </div>
 
       <div class="card howto-section">
+        <h3>🎯 チーム分け</h3>
+        <p>「🎯 チーム分け」ページで、参加者を選んで自動的にチーム分けができます。</p>
+        <div class="howto-steps">
+          <div class="howto-step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>参加者選択</strong>：チェックボックスで今回参加するプレイヤーを選びます。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>人数・アルゴリズム選択</strong>：5v5 / 6v6、総合力均等 / タンク考慮を選びます。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>自動チーム分け</strong>ボタンを押すと、戦力が均等になるよう分割されます。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">4</div>
+            <div class="step-body">結果が気に入らない場合は<strong>プレイヤーをドラッグ</strong>して別チームに移動できます。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">5</div>
+            <div class="step-body"><strong>このチーム分けで決定</strong>を押すと履歴に保存され、次回以降は同じ組み合わせになりにくくなります。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">6</div>
+            <div class="step-body"><strong>Discord用コピー</strong>でチーム結果をDiscordに貼り付けられます。</div>
+          </div>
+        </div>
+        <table class="howto-table" style="margin-top:12px">
+          <thead><tr><th>アルゴリズム</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>総合力均等</td><td>各プレイヤーの総合スコア合計がチーム間で均等になるよう分けます。</td></tr>
+            <tr><td>タンク考慮</td><td>総合力均等に加えて、各チームに「タンクスコアが閾値以上」のプレイヤーが3人以上含まれるよう調整します（BO5のタンク勝ち抜けルール対応）。</td></tr>
+          </tbody>
+        </table>
+        <div class="howto-note">「履歴をリセット」ボタンで履歴をクリアできます。新しいセッションを始める際に使ってください。</div>
+      </div>
+
+      <div class="card howto-section">
         <h3>⚙️ 設定について</h3>
         <table class="howto-table">
           <thead><tr><th>設定項目</th><th>内容</th></tr></thead>
@@ -435,6 +543,7 @@
             <tr><td>キャラポイント</td><td>評価1〜7に対応するポイント値。変更可能です。</td></tr>
             <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「狭く深い」が「広く浅い」を上回るよう設計されています。</td></tr>
             <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど環境に合わせて調整できます。デフォルト1.0。変更したキャラは黄色でハイライトされます。</td></tr>
+            <tr><td>タンク判定閾値</td><td>「タンク考慮」アルゴリズムで使用。タンクスコアがこの値以上のプレイヤーをタンク担当可能と判定します。デフォルト1000。</td></tr>
             <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価4以上のキャラが1体以上いる場合に加算。カテゴリはドラッグで自由に変更できます。</td></tr>
           </tbody>
         </table>
@@ -448,6 +557,9 @@
 <script>
 const ROLES = ['タンク','ダメージ','サポート'];
 
+// ============================================================
+// STATE
+// ============================================================
 const state = {
   ranks: [
     {label:'Bronze 5',pt:100},{label:'Bronze 4',pt:110},{label:'Bronze 3',pt:120},{label:'Bronze 2',pt:135},{label:'Bronze 1',pt:150},
@@ -509,6 +621,12 @@ const state = {
     {role:'サポート', name:'Utility',     chars:['ゼニヤッタ'], bonus:25}
   ],
   charMultipliers: {},
+  tankThreshold: 1000,
+  matchHistory: [],
+  currentTeams: null,
+  participants: {},
+  teamMode: 5,
+  teamAlgo: 'balance',
   players: [],
   nextId: 0
 };
@@ -516,6 +634,9 @@ const state = {
 const RANK_DEFAULT = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
 
 // ロール別スコア計算
+// ============================================================
+// CALCULATIONS
+// ============================================================
 function calcRoleScore(p, role) {
   const rankPt = state.ranks[p.rankIdx[role]].pt;
   const ptMap = {};
@@ -545,6 +666,19 @@ function calcRoleScore(p, role) {
   return { rankPt, charPt, catBonus, total: rankPt + charPt + catBonus };
 }
 
+function findPlayer(id) {
+  return state.players.find(function(p) { return p.id === id; });
+}
+
+function mutatePlayer(id, fn) {
+  const p = findPlayer(id);
+  if (!p) return;
+  fn(p);
+  renderPlayers();
+  renderSummary();
+  saveState();
+}
+
 function calcAllScores(p) {
   const tank = calcRoleScore(p, 'タンク');
   const dps  = calcRoleScore(p, 'ダメージ');
@@ -554,17 +688,22 @@ function calcAllScores(p) {
 }
 
 // プレイヤー追加
+// ============================================================
+// PLAYER ACTIONS
+// ============================================================
 function addPlayer() {
   const id = state.nextId++;
   const ratings = {};
   Object.values(state.chars).flat().forEach(c => ratings[c] = 1);
   const rankIdx = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
   state.players.push({ id, name: 'Player ' + (id + 1), rankIdx, ratings });
+  state.participants[id] = true;
   renderPlayers(); renderSummary(); saveState();
 }
 
 function removePlayer(id) {
   state.players = state.players.filter(p => p.id !== id);
+  delete state.participants[id];
   renderPlayers(); renderSummary(); saveState();
 }
 
@@ -609,6 +748,14 @@ const ROLE_STYLE = {
   'ダメージ': { cls: 'rsb-dps',  labelCls: 'label-dps',  rlCls: 'rl-dps',  bdgCls: 'badge-red'    },
   'サポート': { cls: 'rsb-sup',  labelCls: 'label-sup',  rlCls: 'rl-sup',  bdgCls: 'badge-teal'   }
 };
+
+// ============================================================
+// RENDERING
+// ============================================================
+function renderAll() {
+  renderPlayers();
+  renderSummary();
+}
 
 function renderPlayers() {
   const grid = document.getElementById('player-grid');
@@ -758,6 +905,9 @@ function renderSummary() {
     : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">プレイヤーを追加してください</td></tr>';
 }
 
+// ============================================================
+// CONFIG RENDERING
+// ============================================================
 function renderRankCfg() {
   document.getElementById('rank-cfg-tbody').innerHTML = state.ranks.map((r,i)=>`
     <tr><td>${r.label}</td>
@@ -1219,6 +1369,7 @@ function doImport() {
     rankIdx: parsed.rankIdx,
     ratings: parsed.ratings
   });
+  state.participants[id] = true;
   renderPlayers(); renderSummary(); saveState();
   document.getElementById('import-modal').classList.remove('open');
 }
@@ -1302,16 +1453,381 @@ function flashCopied(btn) {
   setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; }, 1800);
 }
 
+// ============================================================
+// ===== TEAM SPLIT =====
+// ============================================================
+
+function renderTankThresholdCfg() {
+  const inp = document.getElementById('tank-threshold-input');
+  if (!inp) return;
+  inp.value = state.tankThreshold;
+  inp.onchange = function() {
+    state.tankThreshold = +this.value || 0;
+  };
+}
+
+function saveTeamCfg() {
+  // 設定はLS非保存（仕様準拠）。ただし参加者選択は session 中保持
+}
+
+function getActivePlayers() {
+  return state.players.filter(function(p) { return state.participants[p.id]; });
+}
+
+function renderTeamsPage() {
+  renderParticipantsList();
+  updateTeamAlgoDesc();
+  renderHistoryList();
+  renderTeamResult();
+  // ラジオボタン同期
+  document.querySelectorAll('input[name="team-mode"]').forEach(function(r) {
+    r.checked = (+r.value === state.teamMode);
+  });
+  document.querySelectorAll('input[name="team-algo"]').forEach(function(r) {
+    r.checked = (r.value === state.teamAlgo);
+  });
+}
+
+function renderParticipantsList() {
+  const container = document.getElementById('participants-list');
+  if (!container) return;
+  container.innerHTML = '';
+  if (state.players.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text3);grid-column:1/-1;padding:8px">プレイヤー入力タブで先にプレイヤーを追加してください</div>';
+    return;
+  }
+  state.players.forEach(function(p) {
+    const sc = calcAllScores(p);
+    const checked = !!state.participants[p.id];
+    const wrap = document.createElement('label');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 10px;background:' + (checked ? 'var(--accent-light)' : 'var(--bg3)') + ';border-radius:var(--radius);cursor:pointer;font-size:12px;border:1px solid ' + (checked ? 'rgba(37,99,235,0.3)' : 'var(--border)');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.addEventListener('change', function() {
+      state.participants[p.id] = cb.checked;
+      renderParticipantsList();
+    });
+    const name = document.createElement('span');
+    name.style.cssText = 'font-weight:600;flex:1;color:var(--text)';
+    name.textContent = p.name;
+    const score = document.createElement('span');
+    score.style.cssText = 'color:var(--text3);font-size:11px';
+    score.textContent = sc.total;
+    wrap.appendChild(cb);
+    wrap.appendChild(name);
+    wrap.appendChild(score);
+    container.appendChild(wrap);
+  });
+  // count
+  const cnt = getActivePlayers().length;
+  const need = state.teamMode * 2;
+  const cntEl = document.getElementById('participant-count');
+  if (cntEl) {
+    cntEl.textContent = '(' + cnt + ' / ' + need + ' 人必要)';
+    cntEl.style.color = cnt === need ? 'var(--success)' : 'var(--warn)';
+  }
+}
+
+function toggleAllParticipants(on) {
+  state.players.forEach(function(p) { state.participants[p.id] = on; });
+  renderParticipantsList();
+}
+
+function updateTeamAlgoDesc() {
+  const el = document.getElementById('team-algo-desc');
+  if (!el) return;
+  if (state.teamAlgo === 'balance') {
+    el.textContent = '総合力均等: 各プレイヤーの総合スコアの合計がチーム間で均等になるよう分けます。';
+  } else {
+    el.textContent = 'タンク考慮: 総合力均等を保ちつつ、各チームに「タンクスコアが' + state.tankThreshold + '以上」のプレイヤーが3人以上含まれるよう調整します。';
+  }
+}
+
+function runTeamSplit() {
+  const active = getActivePlayers();
+  const need = state.teamMode * 2;
+  if (active.length !== need) {
+    alert('参加者が ' + need + ' 人必要です（現在 ' + active.length + ' 人）');
+    return;
+  }
+  const result = splitTeams(active, state.teamMode, state.teamAlgo);
+  state.currentTeams = result;
+  renderTeamResult();
+}
+
+// メインのチーム分けアルゴリズム
+function splitTeams(players, perTeam, algo) {
+  const scored = players.map(function(p) {
+    const sc = calcAllScores(p);
+    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total };
+  });
+
+  // 履歴から「過去同じチームになった回数」を計算するための関数
+  function pairPenalty(group) {
+    let pen = 0;
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const k = pairKey(group[i].id, group[j].id);
+        pen += (state.pairCounts && state.pairCounts[k]) || 0;
+      }
+    }
+    return pen;
+  }
+
+  // ペア出現回数を集計
+  state.pairCounts = {};
+  state.matchHistory.forEach(function(h) {
+    [h.teamA, h.teamB].forEach(function(team) {
+      for (let i = 0; i < team.length; i++) {
+        for (let j = i + 1; j < team.length; j++) {
+          const k = pairKey(team[i].id, team[j].id);
+          state.pairCounts[k] = (state.pairCounts[k] || 0) + 1;
+        }
+      }
+    });
+  });
+
+  // 候補生成: スコア降順でソートしてランダム性も入れた局所探索
+  // 試行回数を増やして最良解を探す
+  let best = null;
+  const trials = 3000;
+  for (let t = 0; t < trials; t++) {
+    const shuffled = scored.slice();
+    shuffleInPlace(shuffled);
+    const teamA = [], teamB = [];
+    // greedy: 大きいスコアから順に、合計が小さいチームへ
+    const sorted = shuffled.slice().sort(function(a, b) { return b.total - a.total; });
+    sorted.forEach(function(p) {
+      const sumA = teamA.reduce(function(s, x) { return s + x.total; }, 0);
+      const sumB = teamB.reduce(function(s, x) { return s + x.total; }, 0);
+      if (teamA.length >= perTeam) { teamB.push(p); }
+      else if (teamB.length >= perTeam) { teamA.push(p); }
+      else if (sumA <= sumB) { teamA.push(p); }
+      else { teamB.push(p); }
+    });
+    // 局所探索: 2人swap で改善
+    for (let s = 0; s < 200; s++) {
+      const ai = Math.floor(Math.random() * teamA.length);
+      const bi = Math.floor(Math.random() * teamB.length);
+      const before = evalSplit(teamA, teamB, algo, pairPenalty);
+      const tmp = teamA[ai]; teamA[ai] = teamB[bi]; teamB[bi] = tmp;
+      const after = evalSplit(teamA, teamB, algo, pairPenalty);
+      if (after.score > before.score) {
+        // 改悪なら戻す
+        const tmp2 = teamA[ai]; teamA[ai] = teamB[bi]; teamB[bi] = tmp2;
+      }
+    }
+    const ev = evalSplit(teamA, teamB, algo, pairPenalty);
+    if (!best || ev.score < best.score) {
+      best = { teamA: teamA.slice(), teamB: teamB.slice(), score: ev.score, diff: ev.diff, tankOK: ev.tankOK, pairPen: ev.pairPen };
+    }
+  }
+  return best;
+}
+
+function evalSplit(teamA, teamB, algo, pairPenaltyFn) {
+  const sumA = teamA.reduce(function(s, x) { return s + x.total; }, 0);
+  const sumB = teamB.reduce(function(s, x) { return s + x.total; }, 0);
+  const diff = Math.abs(sumA - sumB);
+
+  // タンク要件チェック
+  const tankCountA = teamA.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
+  const tankCountB = teamB.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
+  const tankOK = (tankCountA >= 3 && tankCountB >= 3);
+
+  // 多様性ペナルティ（履歴上同じチームだった回数）
+  const pairPen = pairPenaltyFn(teamA) + pairPenaltyFn(teamB);
+
+  // スコア: 小さいほど良い
+  // diff: 戦力差（最優先）
+  // tankPen: タンク要件違反時の大ペナルティ（'tank'モードのみ）
+  // pairPen * 多様性係数
+  let score = diff;
+  if (algo === 'tank' && !tankOK) score += 100000;
+  score += pairPen * 50; // 過去同じチームだった度合いを少し考慮
+
+  return { score: score, diff: diff, sumA: sumA, sumB: sumB, tankOK: tankOK, pairPen: pairPen };
+}
+
+function pairKey(a, b) {
+  return a < b ? a + '_' + b : b + '_' + a;
+}
+
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+}
+
+function renderTeamResult() {
+  const area = document.getElementById('team-result-area');
+  if (!area) return;
+  if (!state.currentTeams) { area.innerHTML = ''; return; }
+  const r = state.currentTeams;
+  const sumA = r.teamA.reduce(function(s, x) { return s + x.total; }, 0);
+  const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
+  const diff = Math.abs(sumA - sumB);
+  const tankOKHtml = (state.teamAlgo === 'tank')
+    ? (r.tankOK
+      ? '<span style="color:var(--success);font-size:11px;margin-left:6px">✓ タンク要件OK</span>'
+      : '<span style="color:var(--danger);font-size:11px;margin-left:6px">⚠ タンク要件未達</span>')
+    : '';
+
+  const teamCard = function(team, label, color, bg, sum) {
+    const tankBadge = function(x) {
+      if (x.tank >= state.tankThreshold) return '<span style="font-size:10px;color:var(--warn);font-weight:600;margin-left:4px">[T]</span>';
+      return '';
+    };
+    return '<div class="card" style="background:' + bg + ';border-color:' + color + '33">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+        '<div style="font-size:15px;font-weight:700;color:' + color + '">' + label + ' (合計: ' + sum + ')</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px">' +
+        team.map(function(x) {
+          return '<div draggable="true" data-pid="' + x.id + '" data-team="' + label + '" ' +
+            'style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);cursor:grab;font-size:13px" ' +
+            'class="team-member">' +
+            '<span><strong>' + x.name + '</strong>' + tankBadge(x) + '</span>' +
+            '<span style="color:var(--text3);font-size:11px">' + x.total + '</span>' +
+            '</div>';
+        }).join('') +
+      '</div></div>';
+  };
+
+  area.innerHTML =
+    '<div class="card" style="display:flex;justify-content:space-between;align-items:center">' +
+      '<div>' +
+        '<span style="font-size:13px;color:var(--text2)">スコア差: </span>' +
+        '<span style="font-size:18px;font-weight:700;color:' + (diff < 200 ? 'var(--success)' : diff < 500 ? 'var(--warn)' : 'var(--danger)') + '">' + diff + '</span>' +
+        tankOKHtml +
+      '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn" onclick="copyTeamResult(this)">Discord用コピー</button>' +
+        '<button class="btn btn-primary" onclick="confirmTeamSplit()">このチーム分けで決定</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px" id="team-cards">' +
+      teamCard(r.teamA, 'チームA', 'var(--accent)', 'var(--accent-light)', sumA) +
+      teamCard(r.teamB, 'チームB', 'var(--danger)', 'var(--danger-bg)', sumB) +
+    '</div>';
+
+  // ドラッグ&ドロップでチーム間移動
+  setupTeamDragDrop();
+}
+
+function setupTeamDragDrop() {
+  let dragId = null;
+  let dragFromTeam = null;
+  document.querySelectorAll('.team-member').forEach(function(el) {
+    el.addEventListener('dragstart', function(e) {
+      dragId = +el.dataset.pid;
+      dragFromTeam = el.dataset.team;
+      el.style.opacity = '0.4';
+    });
+    el.addEventListener('dragend', function(e) {
+      el.style.opacity = '';
+    });
+  });
+  const cards = document.querySelectorAll('#team-cards > .card');
+  cards.forEach(function(card, idx) {
+    const teamLabel = idx === 0 ? 'チームA' : 'チームB';
+    card.addEventListener('dragover', function(e) { e.preventDefault(); });
+    card.addEventListener('drop', function(e) {
+      e.preventDefault();
+      if (dragId === null || dragFromTeam === teamLabel) return;
+      const r = state.currentTeams;
+      if (!r) return;
+      const fromArr = dragFromTeam === 'チームA' ? r.teamA : r.teamB;
+      const toArr   = teamLabel === 'チームA' ? r.teamA : r.teamB;
+      const idx = fromArr.findIndex(function(x) { return x.id === dragId; });
+      if (idx === -1) return;
+      // swap で人数を保つ: toArr の最初の人と入れ替え
+      // ただし手動調整なので「単純移動」も許容したい → 移動先カードのリストへ移動
+      // 人数バランス維持のため、相手チームの誰かと入れ替える必要がある
+      // 簡易: 移動先で対応する位置の人を移動元に動かす
+      const targetIdx = 0; // 単純に先頭と入れ替え
+      const a = fromArr.splice(idx, 1)[0];
+      const b = toArr.splice(targetIdx, 1)[0];
+      fromArr.splice(idx, 0, b);
+      toArr.push(a);
+      renderTeamResult();
+    });
+  });
+}
+
+function copyTeamResult(btn) {
+  const r = state.currentTeams;
+  if (!r) return;
+  const sumA = r.teamA.reduce(function(s, x) { return s + x.total; }, 0);
+  const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
+  const diff = Math.abs(sumA - sumB);
+  const lines = [];
+  lines.push('🟦 チームA (合計: ' + sumA + ')');
+  r.teamA.forEach(function(x) { lines.push(x.name); });
+  lines.push('');
+  lines.push('🟥 チームB (合計: ' + sumB + ')');
+  r.teamB.forEach(function(x) { lines.push(x.name); });
+  lines.push('');
+  lines.push('スコア差: ' + diff);
+  navigator.clipboard.writeText(lines.join('\n')).then(function() { flashCopied(btn); });
+}
+
+function confirmTeamSplit() {
+  const r = state.currentTeams;
+  if (!r) return;
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  state.matchHistory.push({
+    date: dateStr,
+    teamA: r.teamA.map(function(x) { return { id: x.id, name: x.name }; }),
+    teamB: r.teamB.map(function(x) { return { id: x.id, name: x.name }; })
+  });
+  saveHistory();
+  renderHistoryList();
+  alert('チーム分けを履歴に保存しました');
+}
+
+function renderHistoryList() {
+  const el = document.getElementById('history-list');
+  if (!el) return;
+  const cntEl = document.getElementById('history-count');
+  if (cntEl) cntEl.textContent = '(' + state.matchHistory.length + ' 件)';
+  if (state.matchHistory.length === 0) {
+    el.innerHTML = '<div style="color:var(--text3);padding:8px">履歴なし</div>';
+    return;
+  }
+  el.innerHTML = state.matchHistory.slice().reverse().map(function(h, i) {
+    const aNames = h.teamA.map(function(x) { return x.name; }).join(', ');
+    const bNames = h.teamB.map(function(x) { return x.name; }).join(', ');
+    return '<div style="padding:8px;border-bottom:1px solid var(--border);font-size:12px">' +
+      '<div style="color:var(--text3);font-size:11px;margin-bottom:3px">' + h.date + '</div>' +
+      '<div><span style="color:var(--accent);font-weight:600">A:</span> ' + aNames + '</div>' +
+      '<div><span style="color:var(--danger);font-weight:600">B:</span> ' + bNames + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function resetHistory() {
+  if (!confirm('チーム分け履歴をすべて削除しますか？')) return;
+  state.matchHistory = [];
+  saveHistory();
+  renderHistoryList();
+}
+
 function showPage(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
   if (name==='summary')      renderSummary();
+  if (name==='teams')        renderTeamsPage();
   if (name==='cfg-rank')     renderRankCfg();
   if (name==='cfg-char')     renderCharCfg();
   if (name==='cfg-decay')    renderDecayCfg();
   if (name==='cfg-charmul')  renderCharMulCfg();
+  if (name==='cfg-tank')     renderTankThresholdCfg();
   if (name==='cfg-category') renderCatCfg();
 }
 
@@ -1341,6 +1857,18 @@ function loadState() {
   } catch(e) { return false; }
 }
 
+// チーム分け履歴は別キーで管理（プレイヤーデータと独立）
+const HISTORY_KEY = 'ow_match_history_v1';
+function saveHistory() {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(state.matchHistory)); } catch(e) {}
+}
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) state.matchHistory = JSON.parse(raw) || [];
+  } catch(e) { state.matchHistory = []; }
+}
+
 function clearSave() {
   if (!confirm('保存データを全て削除しますか？')) return;
   localStorage.removeItem(SAVE_KEY);
@@ -1348,6 +1876,7 @@ function clearSave() {
 }
 
 // Init: v2→v3 マイグレーション（プレイヤーデータのみ引き継ぎ）
+loadHistory();
 (function migrate() {
   try {
     if (localStorage.getItem(SAVE_KEY)) return; // v3データが既にあればスキップ
@@ -1363,6 +1892,8 @@ function clearSave() {
 
 const loaded = loadState();
 if (loaded && state.players.length > 0) {
+  // 復元プレイヤーは全員 participants=true で初期化
+  state.players.forEach(function(p) { state.participants[p.id] = true; });
   renderPlayers();
   renderSummary();
 } else {
