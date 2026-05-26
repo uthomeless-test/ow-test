@@ -1677,6 +1677,7 @@ function splitTeams(players, perTeam, algo) {
 
   var pool = [];
   var fallback = null;
+  var seenCombos = {};
   var TRIALS = 500;
 
   for (var t = 0; t < TRIALS; t++) {
@@ -1773,8 +1774,17 @@ function splitTeams(players, perTeam, algo) {
     };
 
     var tankFail = (algo === 'tank' && !tankOK);
+
+    // チームA/Bの入れ替えを同一とみなすキー生成
+    var setKeyA = candidate.teamA.map(function(x){return x.id;}).slice().sort().join(',');
+    var setKeyB = candidate.teamB.map(function(x){return x.id;}).slice().sort().join(',');
+    var comboKey = setKeyA < setKeyB ? setKeyA + '|' + setKeyB : setKeyB + '|' + setKeyA;
+
     if (!tankFail && diff <= state.toleranceDiff) {
-      pool.push(candidate);
+      if (!seenCombos[comboKey]) {
+        seenCombos[comboKey] = true;
+        pool.push(candidate);
+      }
     } else if (!tankFail) {
       if (!fallback || diff < fallback.diff) fallback = candidate;
     }
