@@ -1316,17 +1316,15 @@ function showPage(name, btn) {
 }
 
 // ===== PERSIST =====
-const SAVE_KEY = 'ow_match_v1';
+const SAVE_KEY = 'ow_match_v3';
 
 function saveState() {
   try {
+    // 保存対象はプレイヤー入力データのみ
+    // 設定値（ランクポイント・キャラポイント・逓減率・環境補正・カテゴリ）は保存しない
     const data = {
       players: state.players,
-      nextId: state.nextId,
-      categories: state.categories,
-      ranks: state.ranks,
-      charPts: state.charPts,
-      decay: state.decay
+      nextId: state.nextId
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch(e) {}
@@ -1337,12 +1335,8 @@ function loadState() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    if (data.players)    state.players    = data.players;
-    if (data.nextId)     state.nextId     = data.nextId;
-    if (data.categories) state.categories = data.categories;
-    if (data.ranks)      state.ranks      = data.ranks;
-    if (data.charPts)    state.charPts    = data.charPts;
-    if (data.decay)      state.decay      = data.decay;
+    if (data.players) state.players = data.players;
+    if (data.nextId)  state.nextId  = data.nextId;
     return true;
   } catch(e) { return false; }
 }
