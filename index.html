@@ -286,11 +286,13 @@
     .btn { padding: 8px 14px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app">
   <nav class="sidebar">
     <div class="logo">⚔ OW Match</div>
+    <div id="sync-status" style="font-size:11px;color:var(--text3);margin-bottom:0.5rem;padding:4px 8px;background:var(--bg3);border-radius:var(--radius);text-align:center">接続中...</div>
     <div class="nav-section">メイン</div>
     <button class="nav-btn" onclick="showPage('howto',this)">📖 使い方</button>
     <button class="nav-btn active" onclick="showPage('players',this)">プレイヤー入力</button>
@@ -317,6 +319,7 @@
           <div class="page-sub">ロール別にランクとキャラ評価を入力してください</div>
         </div>
         <div class="spacer"></div>
+        <button class="btn" onclick="loadFromSupabase()">🔄 再読み込み</button>
         <button class="btn" onclick="openImport()">📋 テキストから追加</button>
         <button class="btn btn-primary" onclick="addPlayer()">＋ プレイヤー追加</button>
       </div>
@@ -662,16 +665,13 @@ const state = {
   categories: [
     {role:'ダメージ', name:'Dive',        chars:['トレーサー','ゲンジ','ソンブラ','ベンチャー','ヴェンデッタ','アンラン'], bonus:40},
     {role:'ダメージ', name:'Rush',        chars:['メイ','リーパー','シンメトラ'], bonus:40},
-    {role:'ダメージ', name:'Poke',        chars:['ソジョーン','シエラ','フレイヤ'], bonus:40},
     {role:'ダメージ', name:'Hitscan',     chars:['アッシュ','キャスディ','ソルジャー76','エムレ'], bonus:25},
     {role:'ダメージ', name:'Air',         chars:['エコー','ファラ'], bonus:25},
     {role:'タンク',   name:'Dive',        chars:['レッキング・ボール','ハザード','ドゥームフィスト'], bonus:40},
     {role:'タンク',   name:'Rush',        chars:['ラインハルト','ラマットラ','ジャンカー・クイーン','マウガ','ザリア'], bonus:40},
-    {role:'タンク',   name:'Poke',        chars:['シグマ','オリーサ','ドミナ'], bonus:40},
     {role:'タンク',   name:'Air Control', chars:['ウィンストン','D.Va'], bonus:25},
     {role:'サポート', name:'Main Heal',   chars:['アナ','キリコ'], bonus:40},
     {role:'サポート', name:'Anti Dive',   chars:['ブリギッテ','ミズキ'], bonus:25},
-    {role:'サポート', name:'Poke',        chars:['バティスト'], bonus:40},
     {role:'サポート', name:'Utility',     chars:['ゼニヤッタ'], bonus:25}
   ],
   charMultipliers: {},
@@ -751,20 +751,23 @@ function addPlayer() {
   const ratings = {};
   Object.values(state.chars).flat().forEach(c => ratings[c] = 1);
   const rankIdx = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
-  state.players.push({ id, name: 'Player ' + (id + 1), rankIdx, ratings });
+  const newPlayer = { id: id, name: 'Player ' + (id + 1), rankIdx: rankIdx, ratings: ratings };
+  state.players.push(newPlayer);
   state.participants[id] = true;
-  renderPlayers(); renderSummary(); saveState();
+  renderPlayers(); renderSummary();
+  savePlayerToSupabase(newPlayer);
 }
 
 function removePlayer(id) {
+  deletePlayerFromSupabase(id);
   state.players = state.players.filter(p => p.id !== id);
   delete state.participants[id];
-  renderPlayers(); renderSummary(); saveState();
+  renderPlayers(); renderSummary();
 }
 
 function updateName(id, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.name = val; renderSummary(); saveState(); }
+  if (p) { p.name = val; renderSummary(); savePlayerToSupabase(p); }
 }
 
 function startEditName(id) {
@@ -790,12 +793,12 @@ function endEditName(id) {
 
 function updateRank(id, role, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); saveState(); }
+  if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); savePlayerToSupabase(p); }
 }
 
 function updateRating(id, char, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.ratings[char] = val; renderPlayers(); renderSummary(); saveState(); }
+  if (p) { p.ratings[char] = val; renderPlayers(); renderSummary(); savePlayerToSupabase(p); }
 }
 
 const ROLE_STYLE = {
@@ -1425,7 +1428,8 @@ function doImport() {
     ratings: parsed.ratings
   });
   state.participants[id] = true;
-  renderPlayers(); renderSummary(); saveState();
+  renderPlayers(); renderSummary();
+  savePlayerToSupabase(state.players[state.players.length - 1]);
   document.getElementById('import-modal').classList.remove('open');
 }
 
@@ -1619,7 +1623,12 @@ function runTeamSplit() {
 function splitTeams(players, perTeam, algo) {
   const scored = players.map(function(p) {
     const sc = calcAllScores(p);
-    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total };
+    return {
+      id: p.id, name: p.name,
+      total: sc.total,
+      tank: sc.tank.total,
+      nonTank: sc.dps.total + sc.sup.total  // サポ+DPS合計
+    };
   });
 
   // ペア出現回数を集計
@@ -1639,40 +1648,89 @@ function splitTeams(players, perTeam, algo) {
     var pen = 0;
     for (var i = 0; i < group.length; i++) {
       for (var j = i + 1; j < group.length; j++) {
-        var k = pairKey(group[i].id, group[j].id);
-        pen += (state.pairCounts[k] || 0);
+        pen += (state.pairCounts[pairKey(group[i].id, group[j].id)] || 0);
       }
     }
     return pen;
   }
 
-  var pool = []; // 許容範囲内の候補プール
-  var fallback = null; // 許容範囲外の最小diff解
-
-  var TRIALS = 500;
-  for (var t = 0; t < TRIALS; t++) {
-    var teamA = [], teamB = [];
-    var sorted = scored.slice().sort(function(a, b) { return b.total - a.total; });
-    // greedy 配分 + ランダム要素
-    sorted.forEach(function(p) {
-      var sumA = teamA.reduce(function(s, x) { return s + x.total; }, 0);
-      var sumB = teamB.reduce(function(s, x) { return s + x.total; }, 0);
-      if (teamA.length >= perTeam) { teamB.push(p); }
-      else if (teamB.length >= perTeam) { teamA.push(p); }
-      else {
-        // 差が小さいときはランダムに振る（多様性の源泉）
-        var diff = Math.abs(sumA - sumB);
-        if (diff < state.toleranceDiff * 0.5 && Math.random() < 0.4) {
-          if (Math.random() < 0.5) { teamA.push(p); } else { teamB.push(p); }
-        } else if (sumA <= sumB) {
-          teamA.push(p);
-        } else {
-          teamB.push(p);
-        }
-      }
+  // タンク考慮モード: タンクスコア上位3人をタンク枠として扱う
+  function assignTankRole(players) {
+    if (algo !== 'tank') return players;
+    var sorted = players.slice().sort(function(a, b) { return b.tank - a.tank; });
+    return sorted.map(function(p, i) {
+      return Object.assign({}, p, { isTankSlot: i < 3 });
     });
+  }
 
-    // 1-2回だけswapで微調整（過剰最適化しない）
+  // スコア計算: タンク考慮モードのときはタンク枠はtank値、残りはnonTank値を使う
+  function evalScore(p) {
+    if (algo === 'tank' && p.isTankSlot) return p.tank;
+    return p.total;
+  }
+
+  var pool = [];
+  var fallback = null;
+  var TRIALS = 500;
+
+  for (var t = 0; t < TRIALS; t++) {
+    var assigned = assignTankRole(scored);
+    var teamA = [], teamB = [];
+
+    // タンク考慮: タンク枠とそれ以外を別々にgreedy配分
+    if (algo === 'tank') {
+      var tankSlots = assigned.filter(function(p) { return p.isTankSlot; });
+      var nonTankSlots = assigned.filter(function(p) { return !p.isTankSlot; });
+
+      // タンク枠: tankスコアで均等配分
+      var sortedTank = tankSlots.slice().sort(function(a, b) { return b.tank - a.tank; });
+      sortedTank.forEach(function(p) {
+        var sA = teamA.filter(function(x){return x.isTankSlot;}).reduce(function(s,x){return s+x.tank;},0);
+        var sB = teamB.filter(function(x){return x.isTankSlot;}).reduce(function(s,x){return s+x.tank;},0);
+        var tA = teamA.filter(function(x){return x.isTankSlot;}).length;
+        var tB = teamB.filter(function(x){return x.isTankSlot;}).length;
+        // タンク枠は各チーム3人ずつ（perTeamが5の場合は3:3）
+        var maxTank = 3;
+        if (tA >= maxTank) { teamB.push(p); }
+        else if (tB >= maxTank) { teamA.push(p); }
+        else if (sA <= sB) { teamA.push(p); }
+        else { teamB.push(p); }
+      });
+
+      // 非タンク枠: nonTankスコアで均等配分（ランダム性あり）
+      var sortedNonTank = nonTankSlots.slice().sort(function(a, b) { return b.nonTank - a.nonTank; });
+      sortedNonTank.forEach(function(p) {
+        var sA = teamA.filter(function(x){return !x.isTankSlot;}).reduce(function(s,x){return s+x.nonTank;},0);
+        var sB = teamB.filter(function(x){return !x.isTankSlot;}).reduce(function(s,x){return s+x.nonTank;},0);
+        if (teamA.length >= perTeam) { teamB.push(p); }
+        else if (teamB.length >= perTeam) { teamA.push(p); }
+        else {
+          var diff = Math.abs(sA - sB);
+          if (diff < state.toleranceDiff * 0.5 && Math.random() < 0.4) {
+            if (Math.random() < 0.5) { teamA.push(p); } else { teamB.push(p); }
+          } else if (sA <= sB) { teamA.push(p); }
+          else { teamB.push(p); }
+        }
+      });
+    } else {
+      // 総合力均等: 全員を総合スコアでgreedy配分
+      var sortedAll = assigned.slice().sort(function(a, b) { return b.total - a.total; });
+      sortedAll.forEach(function(p) {
+        var sA = teamA.reduce(function(s,x){return s+x.total;},0);
+        var sB = teamB.reduce(function(s,x){return s+x.total;},0);
+        if (teamA.length >= perTeam) { teamB.push(p); }
+        else if (teamB.length >= perTeam) { teamA.push(p); }
+        else {
+          var diff = Math.abs(sA - sB);
+          if (diff < state.toleranceDiff * 0.5 && Math.random() < 0.4) {
+            if (Math.random() < 0.5) { teamA.push(p); } else { teamB.push(p); }
+          } else if (sA <= sB) { teamA.push(p); }
+          else { teamB.push(p); }
+        }
+      });
+    }
+
+    // 軽いswap（過剰最適化しない）
     for (var s = 0; s < 3; s++) {
       var ai = Math.floor(Math.random() * teamA.length);
       var bi = Math.floor(Math.random() * teamB.length);
@@ -1685,7 +1743,6 @@ function splitTeams(players, perTeam, algo) {
         teamA.reduce(function(s,x){return s+x.total;},0) -
         teamB.reduce(function(s,x){return s+x.total;},0)
       );
-      // 許容範囲を大きく超えるswapは戻す
       if (after > before && after > state.toleranceDiff) {
         var tmp2 = teamA[ai]; teamA[ai] = teamB[bi]; teamB[bi] = tmp2;
       }
@@ -1704,9 +1761,7 @@ function splitTeams(players, perTeam, algo) {
       diff: diff, tankOK: tankOK, pairPen: pen
     };
 
-    // タンクモードでタンク要件を満たさない場合はfallbackにも入れない
     var tankFail = (algo === 'tank' && !tankOK);
-
     if (!tankFail && diff <= state.toleranceDiff) {
       pool.push(candidate);
     } else if (!tankFail) {
@@ -1724,7 +1779,6 @@ function splitTeams(players, perTeam, algo) {
     return chosen;
   }
 
-  // プールが空: fallback（最小diff）
   if (fallback) { fallback.poolSize = 0; return fallback; }
   return { teamA: scored.slice(0, perTeam), teamB: scored.slice(perTeam), diff: 9999, tankOK: false, pairPen: 0, poolSize: 0 };
 }
@@ -1948,32 +2002,11 @@ function showPage(name, btn) {
 }
 
 // ===== PERSIST =====
-const SAVE_KEY = 'ow_match_v3';
+const SUPABASE_URL = 'https://nebjziabgfhvgabncvxr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lYmp6aWFiZ2ZodmdhYm5jdnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDUzMDIsImV4cCI6MjA5NTM4MTMwMn0.DB_f0XaC2aZBl3w0G4Jrb8hhkig1shYm7XQdSzCWneU';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function saveState() {
-  try {
-    // 保存対象はプレイヤー入力データのみ
-    // 設定値（ランクポイント・キャラポイント・逓減率・環境補正・カテゴリ）は保存しない
-    const data = {
-      players: state.players,
-      nextId: state.nextId
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-  } catch(e) {}
-}
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
-    if (data.players) state.players = data.players;
-    if (data.nextId)  state.nextId  = data.nextId;
-    return true;
-  } catch(e) { return false; }
-}
-
-// チーム分け履歴は別キーで管理（プレイヤーデータと独立）
+// チーム分け履歴はlocalStorageで管理（共有不要）
 const HISTORY_KEY = 'ow_match_history_v1';
 function saveHistory() {
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(state.matchHistory)); } catch(e) {}
@@ -1985,37 +2018,123 @@ function loadHistory() {
   } catch(e) { state.matchHistory = []; }
 }
 
-function clearSave() {
-  if (!confirm('保存データを全て削除しますか？')) return;
-  localStorage.removeItem(SAVE_KEY);
-  location.reload();
+// 同期ステータス表示
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'ok' ? 'var(--success)' : type === 'err' ? 'var(--danger)' : 'var(--text3)';
 }
 
-// Init: v2→v3 マイグレーション（プレイヤーデータのみ引き継ぎ）
-loadHistory();
-(function migrate() {
+// Supabase → state に全プレイヤーをロード
+async function loadFromSupabase() {
+  setSyncStatus('読み込み中...', 'info');
   try {
-    if (localStorage.getItem(SAVE_KEY)) return; // v3データが既にあればスキップ
-    const old = localStorage.getItem('ow_match_v1') || localStorage.getItem('ow_match_v2');
-    if (!old) return;
-    const data = JSON.parse(old);
-    if (data.players && data.players.length > 0) {
-      const migrated = { players: data.players, nextId: data.nextId || data.players.length };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(migrated));
+    const { data, error } = await sb.from('players').select('*').order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      setSyncStatus('データなし', 'info');
+      addPlayer(); addPlayer();
+      return;
     }
-  } catch(e) {}
-})();
-
-const loaded = loadState();
-if (loaded && state.players.length > 0) {
-  // 復元プレイヤーは全員 participants=true で初期化
-  state.players.forEach(function(p) { state.participants[p.id] = true; });
-  renderPlayers();
-  renderSummary();
-} else {
-  addPlayer();
-  addPlayer();
+    // DBのデータをstateに変換
+    state.players = data.map(function(row) {
+      return {
+        id:      row.id,
+        name:    row.name || 'Player',
+        rankIdx: { 'タンク': row.rank_tank || 10, 'ダメージ': row.rank_dps || 10, 'サポート': row.rank_sup || 10 },
+        ratings: row.ratings || {}
+      };
+    });
+    // ratingsに存在しないキャラを1で補完
+    const allChars = Object.values(state.chars).flat();
+    state.players.forEach(function(p) {
+      allChars.forEach(function(c) { if (p.ratings[c] === undefined) p.ratings[c] = 1; });
+    });
+    state.nextId = state.players.length;
+    state.players.forEach(function(p) { state.participants[p.id] = true; });
+    renderPlayers();
+    renderSummary();
+    setSyncStatus('同期済み ✓', 'ok');
+  } catch(e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    setSyncStatus('読み込みエラー: ' + msg, 'err');
+    console.error('loadFromSupabase error:', msg);
+  }
 }
+
+// state の1プレイヤーをSupabaseに保存（upsert）
+async function savePlayerToSupabase(p) {
+  state._suppressRealtime = true;
+  setSyncStatus('保存中...', 'info');
+  try {
+    const row = {
+      id:         p.id,
+      name:       p.name,
+      rank_tank:  p.rankIdx['タンク'],
+      rank_dps:   p.rankIdx['ダメージ'],
+      rank_sup:   p.rankIdx['サポート'],
+      ratings:    p.ratings,
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await sb.from('players').upsert(row, { onConflict: 'id' });
+    if (error) throw error;
+    setSyncStatus('保存済み ✓', 'ok');
+  } catch(e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    setSyncStatus('保存エラー: ' + msg, 'err');
+    console.error('savePlayerToSupabase error:', msg);
+  } finally {
+    setTimeout(function() { state._suppressRealtime = false; }, 1000);
+  }
+}
+
+// プレイヤーをSupabaseから削除
+async function deletePlayerFromSupabase(id) {
+  try {
+    const { error } = await sb.from('players').delete().eq('id', id);
+    if (error) throw error;
+  } catch(e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    setSyncStatus('削除エラー: ' + msg, 'err');
+  }
+}
+
+// リアルタイム購読: 他の人の変更を自動反映
+function subscribeRealtime() {
+  sb.channel('players-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, function(payload) {
+      // 自分の操作では再ロードしない（フラグで制御）
+      if (state._suppressRealtime) return;
+      setSyncStatus('更新を受信...', 'info');
+      loadFromSupabase();
+    })
+    .subscribe();
+}
+
+// saveState: 互換性のためlocalStorageにも保存
+function saveState() {
+  // Supabase版では savePlayerToSupabase を使う
+  // この関数は設定変更等の呼び出しで残しておく（何もしない）
+}
+
+// clearSave
+function clearSave() {
+  if (!confirm('全プレイヤーデータをサーバーから削除しますか？この操作は全員に影響します。')) return;
+  sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000').then(function() {
+    state.players = [];
+    state.nextId = 0;
+    renderPlayers();
+    renderSummary();
+    setSyncStatus('削除済み', 'ok');
+  });
+}
+
+// Init
+loadHistory();
+loadFromSupabase().then(function() {
+  subscribeRealtime();
+});
 </script>
   <!-- Text Export Modal -->
   <div class="import-overlay" id="text-export-modal" onclick="if(event.target===this)this.classList.remove('open')">
