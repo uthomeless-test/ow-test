@@ -1627,14 +1627,9 @@ function runTeamSplit() {
 
 // メインのチーム分けアルゴリズム
 function splitTeams(players, perTeam, algo) {
-  const scored = players.map(function(p) {
-    const sc = calcAllScores(p);
-    return {
-      id: p.id, name: p.name,
-      total: sc.total,
-      tank: sc.tank.total,
-      nonTank: sc.dps.total + sc.sup.total  // サポ+DPS合計
-    };
+  var scored = players.map(function(p) {
+    var sc = calcAllScores(p);
+    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total, nonTank: sc.dps.total + sc.sup.total };
   });
 
   // ペア出現回数を集計
@@ -1660,137 +1655,60 @@ function splitTeams(players, perTeam, algo) {
     return pen;
   }
 
-  // タンク考慮モード: タンクスコア上位3人をタンク枠として扱う
-  function assignTankRole(players) {
-    if (algo !== 'tank') return players;
-    var sorted = players.slice().sort(function(a, b) { return b.tank - a.tank; });
-    return sorted.map(function(p, i) {
-      return Object.assign({}, p, { isTankSlot: i < 3 });
-    });
-  }
-
-  // スコア計算: タンク考慮モードのときはタンク枠はtank値、残りはnonTank値を使う
-  function evalScore(p) {
-    if (algo === 'tank' && p.isTankSlot) return p.tank;
-    return p.total;
-  }
-
-  var pool = [];
-  var fallback = null;
-  var seenCombos = {};
-  var TRIALS = 500;
-
-  for (var t = 0; t < TRIALS; t++) {
-    var assigned = assignTankRole(scored);
-    var teamA = [], teamB = [];
-
-    // タンク考慮: タンク枠とそれ以外を別々にgreedy配分
-    if (algo === 'tank') {
-      var tankSlots = assigned.filter(function(p) { return p.isTankSlot; });
-      var nonTankSlots = assigned.filter(function(p) { return !p.isTankSlot; });
-
-      // タンク枠: tankスコアで均等配分
-      var sortedTank = tankSlots.slice().sort(function(a, b) { return b.tank - a.tank; });
-      sortedTank.forEach(function(p) {
-        var sA = teamA.filter(function(x){return x.isTankSlot;}).reduce(function(s,x){return s+x.tank;},0);
-        var sB = teamB.filter(function(x){return x.isTankSlot;}).reduce(function(s,x){return s+x.tank;},0);
-        var tA = teamA.filter(function(x){return x.isTankSlot;}).length;
-        var tB = teamB.filter(function(x){return x.isTankSlot;}).length;
-        // タンク枠は各チーム3人ずつ（perTeamが5の場合は3:3）
-        var maxTank = 3;
-        if (tA >= maxTank) { teamB.push(p); }
-        else if (tB >= maxTank) { teamA.push(p); }
-        else if (sA <= sB) { teamA.push(p); }
-        else { teamB.push(p); }
-      });
-
-      // 非タンク枠: nonTankスコアで均等配分（ランダム性あり）
-      var sortedNonTank = nonTankSlots.slice().sort(function(a, b) { return b.nonTank - a.nonTank; });
-      sortedNonTank.forEach(function(p) {
-        var sA = teamA.filter(function(x){return !x.isTankSlot;}).reduce(function(s,x){return s+x.nonTank;},0);
-        var sB = teamB.filter(function(x){return !x.isTankSlot;}).reduce(function(s,x){return s+x.nonTank;},0);
-        if (teamA.length >= perTeam) { teamB.push(p); }
-        else if (teamB.length >= perTeam) { teamA.push(p); }
-        else {
-          var diff = Math.abs(sA - sB);
-          if (diff < state.toleranceDiff * 0.5 && Math.random() < 0.4) {
-            if (Math.random() < 0.5) { teamA.push(p); } else { teamB.push(p); }
-          } else if (sA <= sB) { teamA.push(p); }
-          else { teamB.push(p); }
-        }
-      });
-    } else {
-      // 総合力均等: 全員を総合スコアでgreedy配分
-      var sortedAll = assigned.slice().sort(function(a, b) { return b.total - a.total; });
-      sortedAll.forEach(function(p) {
-        var sA = teamA.reduce(function(s,x){return s+x.total;},0);
-        var sB = teamB.reduce(function(s,x){return s+x.total;},0);
-        if (teamA.length >= perTeam) { teamB.push(p); }
-        else if (teamB.length >= perTeam) { teamA.push(p); }
-        else {
-          var diff = Math.abs(sA - sB);
-          if (diff < state.toleranceDiff * 0.5 && Math.random() < 0.4) {
-            if (Math.random() < 0.5) { teamA.push(p); } else { teamB.push(p); }
-          } else if (sA <= sB) { teamA.push(p); }
-          else { teamB.push(p); }
-        }
-      });
-    }
-
-    // 軽いswap（過剰最適化しない）
-    for (var s = 0; s < 3; s++) {
-      var ai = Math.floor(Math.random() * teamA.length);
-      var bi = Math.floor(Math.random() * teamB.length);
-      var before = Math.abs(
-        teamA.reduce(function(s,x){return s+x.total;},0) -
-        teamB.reduce(function(s,x){return s+x.total;},0)
-      );
-      var tmp = teamA[ai]; teamA[ai] = teamB[bi]; teamB[bi] = tmp;
-      var after = Math.abs(
-        teamA.reduce(function(s,x){return s+x.total;},0) -
-        teamB.reduce(function(s,x){return s+x.total;},0)
-      );
-      if (after > before && after > state.toleranceDiff) {
-        var tmp2 = teamA[ai]; teamA[ai] = teamB[bi]; teamB[bi] = tmp2;
+  // C(n, k) の全組み合わせを列挙
+  function combinations(arr, k) {
+    var result = [];
+    function pick(start, chosen) {
+      if (chosen.length === k) { result.push(chosen.slice()); return; }
+      for (var i = start; i < arr.length; i++) {
+        chosen.push(arr[i]);
+        pick(i + 1, chosen);
+        chosen.pop();
       }
     }
+    pick(0, []);
+    return result;
+  }
+
+  // 全分割を列挙（A/B入れ替えは同一）
+  var allCombos = combinations(scored, perTeam);
+  var seen = {};
+  var pool = [];
+  var fallback = null;
+
+  var totalTankPlayers = scored.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
+
+  allCombos.forEach(function(teamA) {
+    var teamAIds = teamA.map(function(x){return x.id;}).sort().join(',');
+    var teamB = scored.filter(function(x) { return teamA.indexOf(x) === -1; });
+    var teamBIds = teamB.map(function(x){return x.id;}).sort().join(',');
+    var comboKey = teamAIds < teamBIds ? teamAIds + '|' + teamBIds : teamBIds + '|' + teamAIds;
+    if (seen[comboKey]) return;
+    seen[comboKey] = true;
 
     var sumA = teamA.reduce(function(s,x){return s+x.total;},0);
     var sumB = teamB.reduce(function(s,x){return s+x.total;},0);
     var diff = Math.abs(sumA - sumB);
+
     var tankCountA = teamA.filter(function(x){return x.tank >= state.tankThreshold;}).length;
     var tankCountB = teamB.filter(function(x){return x.tank >= state.tankThreshold;}).length;
-    // タンク担当者数に応じて要件を緩和
-    // 合計6人以上いれば各3人以上、それ未満は差が1以内で均等ならOK
-    var totalTankPlayers = scored.filter(function(x){return x.tank >= state.tankThreshold;}).length;
     var tankOK = totalTankPlayers >= 6
       ? (tankCountA >= 3 && tankCountB >= 3)
       : (Math.abs(tankCountA - tankCountB) <= 1);
+
     var pen = pairPenalty(teamA) + pairPenalty(teamB);
 
-    var candidate = {
-      teamA: teamA.slice(), teamB: teamB.slice(),
-      diff: diff, tankOK: tankOK, pairPen: pen
-    };
+    var candidate = { teamA: teamA, teamB: teamB, diff: diff, tankOK: tankOK, pairPen: pen };
 
     var tankFail = (algo === 'tank' && !tankOK);
-
-    // チームA/Bの入れ替えを同一とみなすキー生成
-    var setKeyA = candidate.teamA.map(function(x){return x.id;}).slice().sort().join(',');
-    var setKeyB = candidate.teamB.map(function(x){return x.id;}).slice().sort().join(',');
-    var comboKey = setKeyA < setKeyB ? setKeyA + '|' + setKeyB : setKeyB + '|' + setKeyA;
-
     if (!tankFail && diff <= state.toleranceDiff) {
-      if (!seenCombos[comboKey]) {
-        seenCombos[comboKey] = true;
-        pool.push(candidate);
-      }
+      pool.push(candidate);
     } else if (!tankFail) {
       if (!fallback || diff < fallback.diff) fallback = candidate;
     }
-  }
+  });
 
-  // プールから選択: ペナルティ下位30%の中からランダム
+  // プールからランダムに1つ選ぶ（ペナルティ下位30%の中から）
   if (pool.length > 0) {
     pool.sort(function(a, b) { return a.pairPen - b.pairPen; });
     var topN = Math.max(1, Math.floor(pool.length * 0.3));
