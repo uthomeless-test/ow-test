@@ -435,7 +435,7 @@
             <label style="font-size:13px"><input type="radio" name="team-algo" value="tank" onchange="state.teamAlgo='tank';saveTeamCfg();"> タンク考慮</label>
           </div>
           <div style="flex:1;text-align:right">
-            <button class="btn btn-primary" onclick="runTeamSplit()">チーム分け</button><button class="btn" onclick="runTeamSplit()" id="reroll-btn" style="display:none">🎲 再抽選</button>
+            <button class="btn btn-primary" onclick="runTeamSplit()">チーム分け</button><button class="btn" onclick="rerollTeamSplit()" id="reroll-btn" style="display:none">🎲 再抽選</button>
           </div>
         </div>
         <div id="team-algo-desc" style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5"></div>
@@ -682,6 +682,8 @@ const state = {
   tankThreshold: 1000,
   toleranceDiff: 300,
   matchHistory: [],
+  candidatePool: [],
+  candidateIndex: 0,
   currentTeams: null,
   participants: {},
   teamMode: 5,
@@ -1614,112 +1616,110 @@ function updateTeamAlgoDesc() {
 }
 
 function runTeamSplit() {
-  const active = getActivePlayers();
-  const need = state.teamMode * 2;
+  var active = getActivePlayers();
+  var need = state.teamMode * 2;
   if (active.length !== need) {
     alert('参加者が ' + need + ' 人必要です（現在 ' + active.length + ' 人）');
     return;
   }
-  const result = splitTeams(active, state.teamMode, state.teamAlgo);
-  state.currentTeams = result;
+  // 新規生成（プール再構築）
+  state.currentTeams = splitTeams(active, state.teamMode, state.teamAlgo);
+  renderTeamResult();
+  // 再抽選ボタンを表示
+  var rerollBtn = document.getElementById('reroll-btn');
+  if (rerollBtn) rerollBtn.style.display = '';
+}
+
+function rerollTeamSplit() {
+  if (!state.candidatePool || state.candidatePool.length === 0) return;
+  state.candidateIndex = (state.candidateIndex + 1) % state.candidatePool.length;
+  state.currentTeams = getCandidate();
   renderTeamResult();
 }
 
 // メインのチーム分けアルゴリズム
-function splitTeams(players, perTeam, algo) {
+// state.candidatePool: 全候補リスト（チーム分けボタン押下時に生成）
+// state.candidateIndex: 現在表示中の候補インデックス
+
+function buildCandidatePool(players, perTeam, algo) {
   var scored = players.map(function(p) {
     var sc = calcAllScores(p);
-    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total, nonTank: sc.dps.total + sc.sup.total };
+    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total };
   });
-
-  // ペア出現回数を集計
-  state.pairCounts = {};
-  state.matchHistory.forEach(function(h) {
-    [h.teamA, h.teamB].forEach(function(team) {
-      for (var i = 0; i < team.length; i++) {
-        for (var j = i + 1; j < team.length; j++) {
-          var k = pairKey(team[i].id, team[j].id);
-          state.pairCounts[k] = (state.pairCounts[k] || 0) + 1;
-        }
-      }
-    });
-  });
-
-  function pairPenalty(group) {
-    var pen = 0;
-    for (var i = 0; i < group.length; i++) {
-      for (var j = i + 1; j < group.length; j++) {
-        pen += (state.pairCounts[pairKey(group[i].id, group[j].id)] || 0);
-      }
-    }
-    return pen;
-  }
-
-  // C(n, k) の全組み合わせを列挙
-  function combinations(arr, k) {
-    var result = [];
-    function pick(start, chosen) {
-      if (chosen.length === k) { result.push(chosen.slice()); return; }
-      for (var i = start; i < arr.length; i++) {
-        chosen.push(arr[i]);
-        pick(i + 1, chosen);
-        chosen.pop();
-      }
-    }
-    pick(0, []);
-    return result;
-  }
-
-  // 全分割を列挙（A/B入れ替えは同一）
-  var allCombos = combinations(scored, perTeam);
-  var seen = {};
-  var pool = [];
-  var fallback = null;
 
   var totalTankPlayers = scored.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
 
-  allCombos.forEach(function(teamA) {
-    var teamAIds = teamA.map(function(x){return x.id;}).sort().join(',');
-    var teamB = scored.filter(function(x) { return teamA.indexOf(x) === -1; });
-    var teamBIds = teamB.map(function(x){return x.id;}).sort().join(',');
-    var comboKey = teamAIds < teamBIds ? teamAIds + '|' + teamBIds : teamBIds + '|' + teamAIds;
-    if (seen[comboKey]) return;
-    seen[comboKey] = true;
+  // C(n, k) の全組み合わせをインデックスで列挙
+  var n = scored.length;
+  var k = perTeam;
+  var pool = [];
+  var seen = {};
 
-    var sumA = teamA.reduce(function(s,x){return s+x.total;},0);
-    var sumB = teamB.reduce(function(s,x){return s+x.total;},0);
-    var diff = Math.abs(sumA - sumB);
+  function combinations(start, chosen) {
+    if (chosen.length === k) {
+      var teamA = chosen.map(function(i) { return scored[i]; });
+      var teamB = scored.filter(function(x) { return chosen.indexOf(scored.indexOf(x)) === -1; });
 
-    var tankCountA = teamA.filter(function(x){return x.tank >= state.tankThreshold;}).length;
-    var tankCountB = teamB.filter(function(x){return x.tank >= state.tankThreshold;}).length;
-    var tankOK = totalTankPlayers >= 6
-      ? (tankCountA >= 3 && tankCountB >= 3)
-      : (Math.abs(tankCountA - tankCountB) <= 1);
+      // IDベースでteamBを確定
+      var teamAIds = chosen.slice().sort(function(a,b){return a-b;});
+      var allIdx = [];
+      for (var i = 0; i < n; i++) allIdx.push(i);
+      var teamBIdx = allIdx.filter(function(i) { return chosen.indexOf(i) === -1; });
+      teamB = teamBIdx.map(function(i) { return scored[i]; });
 
-    var pen = pairPenalty(teamA) + pairPenalty(teamB);
+      var keyA = teamAIds.join(',');
+      var keyB = teamBIdx.slice().sort(function(a,b){return a-b;}).join(',');
+      var comboKey = keyA < keyB ? keyA + '|' + keyB : keyB + '|' + keyA;
+      if (seen[comboKey]) return;
+      seen[comboKey] = true;
 
-    var candidate = { teamA: teamA, teamB: teamB, diff: diff, tankOK: tankOK, pairPen: pen };
+      var sumA = teamA.reduce(function(s,x){return s+x.total;},0);
+      var sumB = teamB.reduce(function(s,x){return s+x.total;},0);
+      var diff = Math.abs(sumA - sumB);
 
-    var tankFail = (algo === 'tank' && !tankOK);
-    if (!tankFail && diff <= state.toleranceDiff) {
-      pool.push(candidate);
-    } else if (!tankFail) {
-      if (!fallback || diff < fallback.diff) fallback = candidate;
+      var tankCountA = teamA.filter(function(x){return x.tank >= state.tankThreshold;}).length;
+      var tankCountB = teamB.filter(function(x){return x.tank >= state.tankThreshold;}).length;
+      var tankOK = totalTankPlayers >= 6
+        ? (tankCountA >= 3 && tankCountB >= 3)
+        : (Math.abs(tankCountA - tankCountB) <= 1);
+
+      var tankFail = (algo === 'tank' && !tankOK);
+      if (!tankFail) {
+        pool.push({ teamA: teamA, teamB: teamB, diff: diff, tankOK: tankOK });
+      }
+      return;
     }
-  });
-
-  // プールからランダムに1つ選ぶ（ペナルティ下位30%の中から）
-  if (pool.length > 0) {
-    pool.sort(function(a, b) { return a.pairPen - b.pairPen; });
-    var topN = Math.max(1, Math.floor(pool.length * 0.3));
-    var topPool = pool.slice(0, topN);
-    var chosen = topPool[Math.floor(Math.random() * topPool.length)];
-    chosen.poolSize = pool.length;
-    return chosen;
+    for (var i = start; i < n; i++) {
+      chosen.push(i);
+      combinations(i + 1, chosen);
+      chosen.pop();
+    }
   }
 
-  if (fallback) { fallback.poolSize = 0; return fallback; }
-  return { teamA: scored.slice(0, perTeam), teamB: scored.slice(perTeam), diff: 9999, tankOK: false, pairPen: 0, poolSize: 0 };
+  combinations(0, []);
+
+  // スコア差が小さい順にソート
+  pool.sort(function(a, b) { return a.diff - b.diff; });
+  return pool;
+}
+
+function splitTeams(players, perTeam, algo) {
+  // 新規チーム分け: プールを生成してインデックスを0にリセット
+  state.candidatePool = buildCandidatePool(players, perTeam, algo);
+  state.candidateIndex = 0;
+  return getCandidate();
+}
+
+function getCandidate() {
+  var pool = state.candidatePool;
+  if (!pool || pool.length === 0) {
+    return { teamA: [], teamB: [], diff: 0, tankOK: false, poolSize: 0 };
+  }
+  var idx = ((state.candidateIndex % pool.length) + pool.length) % pool.length;
+  var c = pool[idx];
+  c.poolSize = pool.length;
+  c.currentIndex = idx + 1;
+  return c;
 }
 
 function evalSplit(teamA, teamB, algo, pairPenaltyFn) {
@@ -1808,7 +1808,7 @@ function renderTeamResult() {
         '<span style="font-size:13px;color:var(--text2)">スコア差: </span>' +
         '<span style="font-size:18px;font-weight:700;color:' + (diff <= state.toleranceDiff ? 'var(--success)' : diff < state.toleranceDiff * 2 ? 'var(--warn)' : 'var(--danger)') + '">' + diff + '</span>' +
         '<span style="font-size:11px;color:var(--text3);margin-left:6px">(許容: ' + state.toleranceDiff + '以内)</span>' +
-      (r.poolSize !== undefined ? '<span style="font-size:11px;color:var(--text3);margin-left:8px">候補: ' + r.poolSize + '通り</span>' : '') +
+      (r.poolSize !== undefined ? '<span style="font-size:11px;color:var(--text3);margin-left:8px">' + (r.currentIndex || 1) + ' / ' + r.poolSize + ' 通り</span>' : '') +
         tankOKHtml +
       '</div>' +
       '<div style="display:flex;gap:8px">' +
@@ -1820,10 +1820,6 @@ function renderTeamResult() {
       teamCard(r.teamA, 'チームA', 'var(--accent)', 'var(--accent-light)', sumA) +
       teamCard(r.teamB, 'チームB', 'var(--danger)', 'var(--danger-bg)', sumB) +
     '</div>';
-
-  // 再抽選ボタンを表示
-  var rerollBtn = document.getElementById('reroll-btn');
-  if (rerollBtn) rerollBtn.style.display = '';
 
   // ドラッグ&ドロップでチーム間移動
   setupTeamDragDrop();
