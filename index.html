@@ -617,6 +617,16 @@ const ROLES = ['タンク','ダメージ','サポート'];
 // ============================================================
 // STATE
 // ============================================================
+
+// UUID v4生成（Supabase id用）
+function genUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0;
+    var v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 const state = {
   ranks: [
     {label:'Bronze 5',pt:100},{label:'Bronze 4',pt:110},{label:'Bronze 3',pt:120},{label:'Bronze 2',pt:135},{label:'Bronze 1',pt:150},
@@ -722,7 +732,7 @@ function calcRoleScore(p, role) {
 }
 
 function findPlayer(id) {
-  return state.players.find(function(p) { return p.id === id; });
+  return state.players.find(function(p) { return String(p.id) === String(id); });
 }
 
 function mutatePlayer(id, fn) {
@@ -747,20 +757,21 @@ function calcAllScores(p) {
 // PLAYER ACTIONS
 // ============================================================
 function addPlayer() {
-  const id = state.nextId++;
+  const id = genUUID();
+  state.nextId++;
   const ratings = {};
   Object.values(state.chars).flat().forEach(c => ratings[c] = 1);
   const rankIdx = { 'タンク': 10, 'ダメージ': 10, 'サポート': 10 };
   const newPlayer = { id: id, name: 'Player ' + (id + 1), rankIdx: rankIdx, ratings: ratings };
   state.players.push(newPlayer);
-  state.participants[id] = true;
+  state.participants[String(id)] = true;
   renderPlayers(); renderSummary();
   savePlayerToSupabase(newPlayer);
 }
 
 function removePlayer(id) {
   deletePlayerFromSupabase(id);
-  state.players = state.players.filter(p => p.id !== id);
+  state.players = state.players.filter(p => String(p.id) !== String(id));
   delete state.participants[id];
   renderPlayers(); renderSummary();
 }
@@ -1420,7 +1431,8 @@ function doImport() {
   const text = document.getElementById('import-text').value.trim();
   if (!text) return;
   const parsed = parseImportText(text);
-  const id = state.nextId++;
+  const id = genUUID();
+  state.nextId++;
   state.players.push({
     id,
     name: parsed.name || ('Player ' + (id + 1)),
@@ -1534,7 +1546,7 @@ function saveTeamCfg() {
 }
 
 function getActivePlayers() {
-  return state.players.filter(function(p) { return state.participants[p.id]; });
+  return state.players.filter(function(p) { return state.participants[String(p.id)]; });
 }
 
 function renderTeamsPage() {
@@ -1561,14 +1573,14 @@ function renderParticipantsList() {
   }
   state.players.forEach(function(p) {
     const sc = calcAllScores(p);
-    const checked = !!state.participants[p.id];
+    const checked = !!state.participants[String(p.id)];
     const wrap = document.createElement('label');
     wrap.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 10px;background:' + (checked ? 'var(--accent-light)' : 'var(--bg3)') + ';border-radius:var(--radius);cursor:pointer;font-size:12px;border:1px solid ' + (checked ? 'rgba(37,99,235,0.3)' : 'var(--border)');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = checked;
     cb.addEventListener('change', function() {
-      state.participants[p.id] = cb.checked;
+      state.participants[String(p.id)] = cb.checked;
       renderParticipantsList();
     });
     const name = document.createElement('span');
@@ -2052,7 +2064,7 @@ async function loadFromSupabase() {
       allChars.forEach(function(c) { if (p.ratings[c] === undefined) p.ratings[c] = 1; });
     });
     state.nextId = state.players.length;
-    state.players.forEach(function(p) { state.participants[p.id] = true; });
+    state.players.forEach(function(p) { state.participants[String(p.id)] = true; });
     renderPlayers();
     renderSummary();
     setSyncStatus('同期済み ✓', 'ok');
@@ -2092,7 +2104,7 @@ async function savePlayerToSupabase(p) {
 // プレイヤーをSupabaseから削除
 async function deletePlayerFromSupabase(id) {
   try {
-    const { error } = await sb.from('players').delete().eq('id', id);
+    const { error } = await sb.from('players').delete().eq('id', String(id));
     if (error) throw error;
   } catch(e) {
     const msg = (e && e.message) ? e.message : String(e);
