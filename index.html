@@ -926,11 +926,14 @@ function renderPlayers() {
         '</div>';
     }).join('');
 
+    var isLocked = !!state.locked[String(p.id)];
+    if (isLocked) { card.classList.add('locked-card'); } else { card.classList.remove('locked-card'); }
     card.innerHTML =
       '<div class="player-card-header">' +
         '<div class="player-avatar">' + initials + '</div>' +
-        '<span class="player-name-display" id="name-display-' + p.id + '" onclick="startEditName(\'' + p.id + '\')">' +
-          p.name + '<span class="edit-icon">✏</span></span>' +
+        '<span class="player-name-display" id="name-display-' + p.id + '"' +
+          (isLocked ? '' : ' onclick="startEditName(\'' + p.id + '\')"') + '>' +
+          p.name + (isLocked ? '' : '<span class="edit-icon">✏</span>') + '</span>' +
         '<input class="player-name-inp player-name-edit" id="name-input-' + p.id + '" type="text" value="' + p.name + '" placeholder="名前"' +
           ' data-pid="' + p.id + '"' +
           ' oninput="updateName(\'' + p.id + '\',this.value)"' +
@@ -938,6 +941,7 @@ function renderPlayers() {
         '<span class="player-score-total">' + sc.total + '</span>' +
         '<button class="copy-btn" onclick="copyPlayerScore(\'' + p.id + '\',this)">スコアコピー</button>' +
         '<button class="copy-btn" onclick="showTextExport(\'' + p.id + '\')" style="margin-left:2px">テキスト出力</button>' +
+        '<button class="lock-btn' + (isLocked ? ' locked' : '') + '" onclick="toggleLock(\'' + p.id + '\')" title="' + (isLocked ? 'ロック解除' : 'ロック') + '">' + (isLocked ? '🔒' : '🔓') + '</button>' +
         '<button class="btn btn-danger btn-sm" onclick="removePlayer(\'' + p.id + '\')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
       '</div>' +
       '<div class="player-card-body">' +
