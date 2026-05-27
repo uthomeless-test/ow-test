@@ -426,13 +426,13 @@
         <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
           <div>
             <span style="font-size:12px;color:var(--text2);margin-right:8px">人数</span>
-            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-mode" value="5" checked onchange="state.teamMode=5;saveTeamCfg();"> 5v5</label>
-            <label style="font-size:13px"><input type="radio" name="team-mode" value="6" onchange="state.teamMode=6;saveTeamCfg();"> 6v6</label>
+            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-mode" value="5" checked onchange="resetTeamResult();state.teamMode=5;restoreTeamResult();saveTeamCfg();"> 5v5</label>
+            <label style="font-size:13px"><input type="radio" name="team-mode" value="6" onchange="resetTeamResult();state.teamMode=6;restoreTeamResult();saveTeamCfg();"> 6v6</label>
           </div>
           <div>
             <span style="font-size:12px;color:var(--text2);margin-right:8px">アルゴリズム</span>
-            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-algo" value="balance" checked onchange="state.teamAlgo='balance';saveTeamCfg();"> 総合力均等</label>
-            <label style="font-size:13px"><input type="radio" name="team-algo" value="tank" onchange="state.teamAlgo='tank';saveTeamCfg();"> タンク考慮</label>
+            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-algo" value="balance" checked onchange="resetTeamResult();state.teamAlgo='balance';restoreTeamResult();saveTeamCfg();"> 総合力均等</label>
+            <label style="font-size:13px"><input type="radio" name="team-algo" value="tank" onchange="resetTeamResult();state.teamAlgo='tank';restoreTeamResult();saveTeamCfg();"> タンク考慮</label>
           </div>
           <div style="flex:1;text-align:right">
             <button class="btn btn-primary" onclick="runTeamSplit()">チーム分け</button><button class="btn" onclick="rerollTeamSplit()" id="reroll-btn" style="display:none">🎲 再抽選</button>
@@ -679,6 +679,7 @@ const state = {
   candidatePool: [],
   candidateIndex: 0,
   currentTeams: null,
+  savedResults: {}, // モードごとの結果を保存 key: algo+'_'+teamMode
   participants: {},
   teamMode: 5,
   teamAlgo: 'balance',
@@ -1519,6 +1520,40 @@ function flashCopied(btn) {
 // ============================================================
 
 
+function resetTeamResult() {
+  // 現在の結果を現在のモードキーで保存
+  if (state.currentTeams) {
+    var key = state.teamAlgo + '_' + state.teamMode;
+    state.savedResults[key] = {
+      currentTeams: state.currentTeams,
+      candidatePool: state.candidatePool,
+      candidateIndex: state.candidateIndex
+    };
+  }
+  // 新しいモードの保存済み結果があれば復元
+  // (この時点ではまだstate.teamAlgoが切り替わる前なので、呼び出し側で処理)
+  state.currentTeams = null;
+  state.candidatePool = [];
+  state.candidateIndex = 0;
+  var area = document.getElementById('team-result-area');
+  if (area) area.innerHTML = '';
+  var rerollBtn = document.getElementById('reroll-btn');
+  if (rerollBtn) rerollBtn.style.display = 'none';
+  updateTeamAlgoDesc();
+}
+
+function restoreTeamResult() {
+  var key = state.teamAlgo + '_' + state.teamMode;
+  var saved = state.savedResults[key];
+  if (!saved) return;
+  state.currentTeams = saved.currentTeams;
+  state.candidatePool = saved.candidatePool;
+  state.candidateIndex = saved.candidateIndex;
+  renderTeamResult();
+  var rerollBtn = document.getElementById('reroll-btn');
+  if (rerollBtn && state.candidatePool.length > 0) rerollBtn.style.display = '';
+}
+
 function saveTeamCfg() {
   // 設定はLS非保存（仕様準拠）。ただし参加者選択は session 中保持
 }
@@ -1777,7 +1812,26 @@ function renderTeamResult() {
   const r = state.currentTeams;
   const sumA = r.teamA.reduce(function(s, x) { return s + x.total; }, 0);
   const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
-  const diff = Math.abs(sumA - sumB);
+  // タンクモード時はスコア差も傾斜後の値を使う
+  var displayDiff;
+  if (state.teamAlgo === 'tank') {
+    var tankRankMapA = {}, tankRankMapB = {};
+    r.teamA.slice().sort(function(a,b){return b.tank-a.tank;}).forEach(function(x,i){ tankRankMapA[String(x.id)]=i; });
+    r.teamB.slice().sort(function(a,b){return b.tank-a.tank;}).forEach(function(x,i){ tankRankMapB[String(x.id)]=i; });
+    function effScore(x, rankMap) {
+      var w = TANK_WEIGHTS[rankMap[String(x.id)] !== undefined ? rankMap[String(x.id)] : 0] || 0;
+      var pl = state.players.find(function(p){ return String(p.id)===String(x.id); });
+      if (!pl) return x.total;
+      var sc = calcAllScores(pl);
+      return Math.round(x.tank * w + sc.dps.total + sc.sup.total);
+    }
+    var effA = r.teamA.reduce(function(s,x){ return s + effScore(x, tankRankMapA); }, 0);
+    var effB = r.teamB.reduce(function(s,x){ return s + effScore(x, tankRankMapB); }, 0);
+    displayDiff = Math.abs(effA - effB);
+  } else {
+    displayDiff = Math.abs(sumA - sumB);
+  }
+  const diff = displayDiff;
   const TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
   function teamEffectiveScoreDisplay(team) {
     var sorted = team.slice().sort(function(a,b){return b.tank-a.tank;});
@@ -1959,7 +2013,26 @@ function copyTeamResult(btn) {
   if (!r) return;
   const sumA = r.teamA.reduce(function(s, x) { return s + x.total; }, 0);
   const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
-  const diff = Math.abs(sumA - sumB);
+  // タンクモード時はスコア差も傾斜後の値を使う
+  var displayDiff;
+  if (state.teamAlgo === 'tank') {
+    var tankRankMapA = {}, tankRankMapB = {};
+    r.teamA.slice().sort(function(a,b){return b.tank-a.tank;}).forEach(function(x,i){ tankRankMapA[String(x.id)]=i; });
+    r.teamB.slice().sort(function(a,b){return b.tank-a.tank;}).forEach(function(x,i){ tankRankMapB[String(x.id)]=i; });
+    function effScore(x, rankMap) {
+      var w = TANK_WEIGHTS[rankMap[String(x.id)] !== undefined ? rankMap[String(x.id)] : 0] || 0;
+      var pl = state.players.find(function(p){ return String(p.id)===String(x.id); });
+      if (!pl) return x.total;
+      var sc = calcAllScores(pl);
+      return Math.round(x.tank * w + sc.dps.total + sc.sup.total);
+    }
+    var effA = r.teamA.reduce(function(s,x){ return s + effScore(x, tankRankMapA); }, 0);
+    var effB = r.teamB.reduce(function(s,x){ return s + effScore(x, tankRankMapB); }, 0);
+    displayDiff = Math.abs(effA - effB);
+  } else {
+    displayDiff = Math.abs(sumA - sumB);
+  }
+  const diff = displayDiff;
   const lines = [];
   lines.push('🟦 チームA (合計: ' + sumA + ')');
   r.teamA.forEach(function(x) { lines.push(x.name); });
