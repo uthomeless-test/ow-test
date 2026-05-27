@@ -440,13 +440,7 @@
         </div>
         <div id="team-algo-desc" style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5"></div>
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <div style="flex:1">
-              <div style="font-size:12px;font-weight:600;color:var(--text)">タンク担当の最低スコア</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">「タンク考慮」モードで使用。タンクスコアがこの値以上のプレイヤーをタンク担当可能と判定します。</div>
-            </div>
-            <input type="number" class="num-input" id="tank-threshold-inline" min="0" step="50" style="width:90px" />
-          </div>
+
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div style="flex:1">
               <div style="font-size:12px;font-weight:600;color:var(--text)">ポイント誤差の許容値</div>
@@ -1611,7 +1605,7 @@ function updateTeamAlgoDesc() {
   if (state.teamAlgo === 'balance') {
     el.textContent = '総合力均等: 各プレイヤーの総合スコアの合計がチーム間で均等になるよう分けます。';
   } else {
-    el.textContent = 'タンク考慮: 総合力均等を保ちつつ、各チームに「タンクスコアが' + state.tankThreshold + '以上」のプレイヤーが3人以上含まれるよう調整します。';
+    el.textContent = 'タンク考慮: 各チームのタンクスコアに傾斜（1位×1.0, 2位×0.95, 3位×0.85, 4位×0.55, 5位×0.35）をかけた合計が均等になるよう分けます。';
   }
 }
 
@@ -1631,70 +1625,8 @@ function runTeamSplit() {
 }
 
 function rerollTeamSplit() {
-  var pool = state.candidatePool;
-  if (!pool || pool.length === 0) return;
-
-  var current = state.currentTeams;
-  if (!current || !current.teamA) {
-    state.candidateIndex = (state.candidateIndex + 1) % pool.length;
-    state.currentTeams = getCandidate();
-    renderTeamResult();
-    return;
-  }
-
-  // 現在のチームAのIDセット（A/B正規化: 小さい方をsetAとする）
-  var curSetA = current.teamA.map(function(x){ return x.id; }).slice().sort().join(',');
-  var curSetB = current.teamB.map(function(x){ return x.id; }).slice().sort().join(',');
-  var curKey = curSetA < curSetB ? curSetA : curSetB; // 正規化されたチームAのID
-
-  // 各候補と現在の組み合わせの重複人数を計算
-  // 重複2〜3人 → priority 0（優先）
-  // 重複1,4人  → priority 1（後回し）
-  // 重複0,5人  → priority 2（最後）
-  // 現在と同一 → スキップ
-
-  var currentIdx = state.candidateIndex;
-  var n = pool.length;
-
-  // 現在位置より後ろ → 前の順で候補を並べる（1周する）
-  var order = [];
-  for (var i = 1; i < n; i++) {
-    order.push((currentIdx + i) % n);
-  }
-
-  function overlapCount(candidate) {
-    var candSetA = candidate.teamA.map(function(x){ return x.id; }).slice().sort().join(',');
-    var candSetB = candidate.teamB.map(function(x){ return x.id; }).slice().sort().join(',');
-    var candKey = candSetA < candSetB ? candSetA : candSetB;
-
-    // curKey と candKey の共通ID数を数える
-    var curIds = curKey.split(',');
-    var candIds = candKey.split(',');
-    var overlap = curIds.filter(function(id){ return candIds.indexOf(id) !== -1; }).length;
-    return overlap;
-  }
-
-  function priority(overlap, perTeam) {
-    var half = perTeam / 2;
-    // 重複がperTeam/2前後（2〜3/5、3/6）→ 優先
-    if (overlap === Math.floor(half) || overlap === Math.ceil(half)) return 0;
-    // 全一致・全不一致 → 最後
-    if (overlap === 0 || overlap === perTeam) return 2;
-    // それ以外 → 中間
-    return 1;
-  }
-
-  var perTeam = (pool[0] && pool[0].teamA) ? pool[0].teamA.length : 5;
-
-  // priorityでソートして最初のものを選ぶ
-  var sorted = order.slice().sort(function(a, b) {
-    var pa = priority(overlapCount(pool[a]), perTeam);
-    var pb = priority(overlapCount(pool[b]), perTeam);
-    if (pa !== pb) return pa - pb;
-    return a - b; // 同じpriorityなら元の順序
-  });
-
-  state.candidateIndex = sorted[0];
+  if (!state.candidatePool || state.candidatePool.length === 0) return;
+  state.candidateIndex = (state.candidateIndex + 1) % state.candidatePool.length;
   state.currentTeams = getCandidate();
   renderTeamResult();
 }
@@ -1709,7 +1641,19 @@ function buildCandidatePool(players, perTeam, algo) {
     return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total };
   });
 
-  var totalTankPlayers = scored.filter(function(x) { return x.tank >= state.tankThreshold; }).length;
+  var TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
+
+  // タンク傾斜スコア計算: チームのタンク値を降順に並べて重みをかけた合計
+  function tankWeightedScore(team) {
+    var tanks = team.map(function(x){ return x.tank; }).slice().sort(function(a,b){ return b-a; });
+    var score = 0;
+    tanks.forEach(function(t, i) {
+      var w = i < TANK_WEIGHTS.length ? TANK_WEIGHTS[i] : 0;
+      score += t * w;
+    });
+    return score;
+  }
+
   var n = scored.length;
   var pool = [];
   var fallback = null;
@@ -1729,24 +1673,24 @@ function buildCandidatePool(players, perTeam, algo) {
       if (seen[comboKey]) return;
       seen[comboKey] = true;
 
-      var sumA = teamA.reduce(function(s,x){return s+x.total;},0);
-      var sumB = teamB.reduce(function(s,x){return s+x.total;},0);
-      var diff = Math.abs(sumA - sumB);
+      var sumA, sumB, diff;
+      if (algo === 'tank') {
+        // タンク傾斜スコアで評価
+        sumA = tankWeightedScore(teamA);
+        sumB = tankWeightedScore(teamB);
+        diff = Math.abs(sumA - sumB);
+      } else {
+        sumA = teamA.reduce(function(s,x){return s+x.total;},0);
+        sumB = teamB.reduce(function(s,x){return s+x.total;},0);
+        diff = Math.abs(sumA - sumB);
+      }
 
-      var tankCountA = teamA.filter(function(x){return x.tank >= state.tankThreshold;}).length;
-      var tankCountB = teamB.filter(function(x){return x.tank >= state.tankThreshold;}).length;
-      var tankOK = totalTankPlayers >= 6
-        ? (tankCountA >= 3 && tankCountB >= 3)
-        : (Math.abs(tankCountA - tankCountB) <= 1);
-      var tankFail = (algo === 'tank' && !tankOK);
+      var candidate = { teamA: teamA, teamB: teamB, diff: diff };
 
-      if (!tankFail) {
-        var candidate = { teamA: teamA, teamB: teamB, diff: diff, tankOK: tankOK };
-        if (diff <= state.toleranceDiff) {
-          pool.push(candidate);
-        } else {
-          if (!fallback || diff < fallback.diff) fallback = candidate;
-        }
+      if (diff <= state.toleranceDiff) {
+        pool.push(candidate);
+      } else {
+        if (!fallback || diff < fallback.diff) fallback = candidate;
       }
       return;
     }
@@ -1758,18 +1702,47 @@ function buildCandidatePool(players, perTeam, algo) {
   }
 
   combinations(0, []);
-
-  // 許容範囲内をスコア差順にソート
   pool.sort(function(a, b) { return a.diff - b.diff; });
-
-  // 1件もなければfallbackを返す
   if (pool.length === 0 && fallback) pool.push(fallback);
-
   return pool;
 }
 
 function splitTeams(players, perTeam, algo) {
-  state.candidatePool = buildCandidatePool(players, perTeam, algo);
+  var pool = buildCandidatePool(players, perTeam, algo);
+  if (pool.length > 1) {
+    // グリーディに「前の候補と変化量2〜3のもの」を優先して並べ直す
+    var half = Math.floor(pool[0].teamA.length / 2);
+    function overlap(a, b) {
+      var aKey = a.teamA.map(function(x){return x.id;}).sort().join(',');
+      var aKeyB = a.teamB.map(function(x){return x.id;}).sort().join(',');
+      var bKey = b.teamA.map(function(x){return x.id;}).sort().join(',');
+      var bKeyB = b.teamB.map(function(x){return x.id;}).sort().join(',');
+      var normA = aKey < aKeyB ? aKey : aKeyB;
+      var normB = bKey < bKeyB ? bKey : bKeyB;
+      return normA.split(',').filter(function(id){ return normB.split(',').indexOf(id) !== -1; }).length;
+    }
+    function priority(ov, n) {
+      if (ov === Math.floor(n/2) || ov === Math.ceil(n/2)) return 0;
+      if (ov === 0 || ov === n) return 2;
+      return 1;
+    }
+    var n = pool[0].teamA.length;
+    var sorted = [pool[0]];
+    var remaining = pool.slice(1);
+    while (remaining.length > 0) {
+      var prev = sorted[sorted.length - 1];
+      // 優先度0のものを先に、同優先度内はdiff順
+      remaining.sort(function(a, b) {
+        var pa = priority(overlap(prev, a), n);
+        var pb = priority(overlap(prev, b), n);
+        if (pa !== pb) return pa - pb;
+        return a.diff - b.diff;
+      });
+      sorted.push(remaining.shift());
+    }
+    pool = sorted;
+  }
+  state.candidatePool = pool;
   state.candidateIndex = 0;
   return getCandidate();
 }
