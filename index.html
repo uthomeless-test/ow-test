@@ -1638,20 +1638,21 @@ function rerollTeamSplit() {
 function buildCandidatePool(players, perTeam, algo) {
   var scored = players.map(function(p) {
     var sc = calcAllScores(p);
-    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total };
+    return { id: p.id, name: p.name, total: sc.total, tank: sc.tank.total, nonTank: sc.dps.total + sc.sup.total };
   });
 
   var TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
 
-  // タンク傾斜スコア計算: チームのタンク値を降順に並べて重みをかけた合計
-  function tankWeightedScore(team) {
-    var tanks = team.map(function(x){ return x.tank; }).slice().sort(function(a,b){ return b-a; });
-    var score = 0;
-    tanks.forEach(function(t, i) {
+  // タンク考慮モード: チーム内のタンク順位に応じて傾斜をかけた実効スコアを計算
+  // 各プレイヤーの実効スコア = タンクスコア × 傾斜倍率 + DPS + サポート
+  function teamEffectiveScore(team) {
+    var sorted = team.slice().sort(function(a, b) { return b.tank - a.tank; });
+    var total = 0;
+    sorted.forEach(function(p, i) {
       var w = i < TANK_WEIGHTS.length ? TANK_WEIGHTS[i] : 0;
-      score += t * w;
+      total += p.tank * w + p.nonTank;
     });
-    return score;
+    return total;
   }
 
   var n = scored.length;
@@ -1675,18 +1676,15 @@ function buildCandidatePool(players, perTeam, algo) {
 
       var sumA, sumB, diff;
       if (algo === 'tank') {
-        // タンク傾斜スコアで評価
-        sumA = tankWeightedScore(teamA);
-        sumB = tankWeightedScore(teamB);
-        diff = Math.abs(sumA - sumB);
+        sumA = teamEffectiveScore(teamA);
+        sumB = teamEffectiveScore(teamB);
       } else {
         sumA = teamA.reduce(function(s,x){return s+x.total;},0);
         sumB = teamB.reduce(function(s,x){return s+x.total;},0);
-        diff = Math.abs(sumA - sumB);
       }
+      diff = Math.abs(sumA - sumB);
 
       var candidate = { teamA: teamA, teamB: teamB, diff: diff };
-
       if (diff <= state.toleranceDiff) {
         pool.push(candidate);
       } else {
@@ -1774,22 +1772,23 @@ function renderTeamResult() {
   const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
   const diff = Math.abs(sumA - sumB);
   const TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
-  function tankWeightedScoreDisplay(team) {
-    var tanks = team.slice().sort(function(a,b){return b.tank-a.tank;});
-    var score = 0;
-    tanks.forEach(function(x,i){ score += x.tank * (i < TANK_WEIGHTS.length ? TANK_WEIGHTS[i] : 0); });
-    return Math.round(score);
+  function teamEffectiveScoreDisplay(team) {
+    var sorted = team.slice().sort(function(a,b){return b.tank-a.tank;});
+    var total = 0;
+    sorted.forEach(function(p,i){
+      var w = i < TANK_WEIGHTS.length ? TANK_WEIGHTS[i] : 0;
+      var sc = calcAllScores(state.players.find(function(pl){return String(pl.id)===String(p.id);})||{rankIdx:{'タンク':10,'ダメージ':10,'サポート':10},ratings:{}});
+      total += p.tank * w + sc.dps.total + sc.sup.total;
+    });
+    return Math.round(total);
   }
   const tankOKHtml = (state.teamAlgo === 'tank')
-    ? '<span style="font-size:11px;color:var(--text3);margin-left:6px">タンク傾斜: A=' + tankWeightedScoreDisplay(r.teamA) + ' B=' + tankWeightedScoreDisplay(r.teamB) + '</span>'
+    ? '<span style="font-size:11px;color:var(--text3);margin-left:6px">傾斜後実効: A=' + teamEffectiveScoreDisplay(r.teamA) + ' B=' + teamEffectiveScoreDisplay(r.teamB) + '</span>'
     : '';
 
   const teamCard = function(team, label, color, bg, sum) {
     // タンクモード時: プレイヤーをタンクスコア降順にソートして傾斜順位を付与
-    var displayTeam = team.slice();
-    if (state.teamAlgo === 'tank') {
-      displayTeam = displayTeam.slice().sort(function(a,b){return b.tank-a.tank;});
-    }
+    var displayTeam = team.slice().sort(function(a,b){return b.total-a.total;});
     const tankBadge = function(x, rank) {
       if (state.teamAlgo === 'tank') {
         var w = rank < TANK_WEIGHTS.length ? TANK_WEIGHTS[rank] : 0;
