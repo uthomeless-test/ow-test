@@ -1815,6 +1815,7 @@ function renderTeamResult() {
   const area = document.getElementById('team-result-area');
   if (!area) return;
   if (!state.currentTeams) { area.innerHTML = ''; return; }
+  const TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
   const r = state.currentTeams;
   const sumA = r.teamA.reduce(function(s, x) { return s + x.total; }, 0);
   const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
@@ -1838,7 +1839,6 @@ function renderTeamResult() {
     displayDiff = Math.abs(sumA - sumB);
   }
   const diff = displayDiff;
-  const TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
   function teamEffectiveScoreDisplay(team) {
     var sorted = team.slice().sort(function(a,b){return b.tank-a.tank;});
     var total = 0;
