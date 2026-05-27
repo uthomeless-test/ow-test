@@ -235,6 +235,12 @@
   .howto-table td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
   .howto-table tr:last-child td { border-bottom: none; }
 
+  .lock-btn { font-size:13px; cursor:pointer; padding:0 4px; background:none; border:none; line-height:1; color:var(--text3); transition:color 0.1s; flex-shrink:0; }
+  .lock-btn:hover { color:var(--accent); }
+  .lock-btn.locked { color:var(--warn); }
+  .player-card.locked-card { opacity:0.75; }
+  .player-card.locked-card .player-card-body { pointer-events:none; }
+
   @media (max-width: 720px) {
     .app { grid-template-columns: 1fr; }
     .sidebar {
@@ -683,6 +689,7 @@ const state = {
   participants: {},
   teamMode: 5,
   teamAlgo: 'balance',
+  locked: {},
   players: [],
   nextId: 0
 };
@@ -769,7 +776,12 @@ function removePlayer(id) {
 
 function updateName(id, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.name = val; renderSummary(); savePlayerToSupabase(p); }
+  if (p && !state.locked[String(id)]) { p.name = val; renderSummary(); savePlayerToSupabase(p); }
+}
+
+function toggleLock(id) {
+  state.locked[String(id)] = !state.locked[String(id)];
+  renderPlayers();
 }
 
 function startEditName(id) {
@@ -795,12 +807,12 @@ function endEditName(id) {
 
 function updateRank(id, role, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); savePlayerToSupabase(p); }
+  if (p && !state.locked[String(id)]) { p.rankIdx[role] = parseInt(val); renderPlayers(); renderSummary(); savePlayerToSupabase(p); }
 }
 
 function updateRating(id, char, val) {
   const p = state.players.find(p => p.id === id);
-  if (p) { p.ratings[char] = val; renderPlayers(); renderSummary(); savePlayerToSupabase(p); }
+  if (p && !state.locked[String(id)]) { p.ratings[char] = val; renderPlayers(); renderSummary(); savePlayerToSupabase(p); }
 }
 
 const ROLE_STYLE = {
@@ -2157,7 +2169,10 @@ async function loadFromSupabase() {
       allChars.forEach(function(c) { if (p.ratings[c] === undefined) p.ratings[c] = 1; });
     });
     state.nextId = state.players.length;
-    state.players.forEach(function(p) { state.participants[String(p.id)] = true; });
+    state.players.forEach(function(p) {
+      state.participants[String(p.id)] = true;
+      state.locked[String(p.id)] = true;
+    });
     renderPlayers();
     renderSummary();
     setSyncStatus('同期済み ✓', 'ok');
