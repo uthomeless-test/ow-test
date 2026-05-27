@@ -1759,27 +1759,6 @@ function getCandidate() {
   return c;
 }
 
-function splitTeams(players, perTeam, algo) {
-  // 新規チーム分け: プールを生成してインデックスを0にリセット
-  state.candidatePool = buildCandidatePool(players, perTeam, algo);
-  state.candidateIndex = 0;
-  return getCandidate();
-}
-
-function getCandidate() {
-  var pool = state.candidatePool;
-  if (!pool || pool.length === 0) {
-    return { teamA: [], teamB: [], diff: 0, tankOK: false, poolSize: 0 };
-  }
-  var idx = ((state.candidateIndex % pool.length) + pool.length) % pool.length;
-  var c = pool[idx];
-  c.poolSize = pool.length;
-  c.currentIndex = idx + 1;
-  return c;
-}
-
-
-
 function pairKey(a, b) {
   return a < b ? a + '_' + b : b + '_' + a;
 }
@@ -1794,15 +1773,29 @@ function renderTeamResult() {
   const sumA = r.teamA.reduce(function(s, x) { return s + x.total; }, 0);
   const sumB = r.teamB.reduce(function(s, x) { return s + x.total; }, 0);
   const diff = Math.abs(sumA - sumB);
+  const TANK_WEIGHTS = [1.0, 0.95, 0.85, 0.55, 0.35];
+  function tankWeightedScoreDisplay(team) {
+    var tanks = team.slice().sort(function(a,b){return b.tank-a.tank;});
+    var score = 0;
+    tanks.forEach(function(x,i){ score += x.tank * (i < TANK_WEIGHTS.length ? TANK_WEIGHTS[i] : 0); });
+    return Math.round(score);
+  }
   const tankOKHtml = (state.teamAlgo === 'tank')
-    ? (r.tankOK
-      ? '<span style="color:var(--success);font-size:11px;margin-left:6px">✓ タンク要件OK</span>'
-      : '<span style="color:var(--danger);font-size:11px;margin-left:6px">⚠ タンク要件未達</span>')
+    ? '<span style="font-size:11px;color:var(--text3);margin-left:6px">タンク傾斜: A=' + tankWeightedScoreDisplay(r.teamA) + ' B=' + tankWeightedScoreDisplay(r.teamB) + '</span>'
     : '';
 
   const teamCard = function(team, label, color, bg, sum) {
-    const tankBadge = function(x) {
-      if (x.tank >= state.tankThreshold) return '<span style="font-size:10px;color:var(--warn);font-weight:600;margin-left:4px">[T]</span>';
+    // タンクモード時: プレイヤーをタンクスコア降順にソートして傾斜順位を付与
+    var displayTeam = team.slice();
+    if (state.teamAlgo === 'tank') {
+      displayTeam = displayTeam.slice().sort(function(a,b){return b.tank-a.tank;});
+    }
+    const tankBadge = function(x, rank) {
+      if (state.teamAlgo === 'tank') {
+        var w = rank < TANK_WEIGHTS.length ? TANK_WEIGHTS[rank] : 0;
+        var weighted = Math.round(x.tank * w);
+        return '<span style="font-size:10px;color:var(--warn);font-weight:600;margin-left:4px">' + weighted + '(' + (w*100).toFixed(0) + '%)</span>';
+      }
       return '';
     };
     return '<div class="card" style="background:' + bg + ';border-color:' + color + '33">' +
@@ -1810,11 +1803,11 @@ function renderTeamResult() {
         '<div style="font-size:15px;font-weight:700;color:' + color + '">' + label + ' (合計: ' + sum + ')</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;gap:4px">' +
-        team.map(function(x) {
+        displayTeam.map(function(x, rank) {
           return '<div draggable="true" data-pid="' + x.id + '" data-team="' + label + '" ' +
             'style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);cursor:grab;font-size:13px" ' +
             'class="team-member">' +
-            '<span><strong>' + x.name + '</strong>' + tankBadge(x) + '</span>' +
+            '<span><strong>' + x.name + '</strong>' + tankBadge(x, rank) + '</span>' +
             '<span style="color:var(--text3);font-size:11px">' + x.total + '</span>' +
             '</div>';
         }).join('') +
