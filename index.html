@@ -426,13 +426,13 @@
         <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
           <div>
             <span style="font-size:12px;color:var(--text2);margin-right:8px">人数</span>
-            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-mode" value="5" checked onchange="resetTeamResult();state.teamMode=5;restoreTeamResult();saveTeamCfg();"> 5v5</label>
-            <label style="font-size:13px"><input type="radio" name="team-mode" value="6" onchange="resetTeamResult();state.teamMode=6;restoreTeamResult();saveTeamCfg();"> 6v6</label>
+            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-mode" value="5" checked onchange="saveCurrentResult();state.teamMode=5;restoreTeamResult();saveTeamCfg();"> 5v5</label>
+            <label style="font-size:13px"><input type="radio" name="team-mode" value="6" onchange="saveCurrentResult();state.teamMode=6;restoreTeamResult();saveTeamCfg();"> 6v6</label>
           </div>
           <div>
             <span style="font-size:12px;color:var(--text2);margin-right:8px">アルゴリズム</span>
-            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-algo" value="balance" checked onchange="resetTeamResult();state.teamAlgo='balance';restoreTeamResult();saveTeamCfg();"> 総合力均等</label>
-            <label style="font-size:13px"><input type="radio" name="team-algo" value="tank" onchange="resetTeamResult();state.teamAlgo='tank';restoreTeamResult();saveTeamCfg();"> タンク考慮</label>
+            <label style="margin-right:10px;font-size:13px"><input type="radio" name="team-algo" value="balance" checked onchange="saveCurrentResult();state.teamAlgo='balance';restoreTeamResult();saveTeamCfg();"> 総合力均等</label>
+            <label style="font-size:13px"><input type="radio" name="team-algo" value="tank" onchange="saveCurrentResult();state.teamAlgo='tank';restoreTeamResult();saveTeamCfg();"> タンク考慮</label>
           </div>
           <div style="flex:1;text-align:right">
             <button class="btn btn-primary" onclick="runTeamSplit()">チーム分け</button><button class="btn" onclick="rerollTeamSplit()" id="reroll-btn" style="display:none">🎲 再抽選</button>
@@ -1520,38 +1520,44 @@ function flashCopied(btn) {
 // ============================================================
 
 
-function resetTeamResult() {
+function saveCurrentResult() {
   // 現在の結果を現在のモードキーで保存
-  if (state.currentTeams) {
-    var key = state.teamAlgo + '_' + state.teamMode;
-    state.savedResults[key] = {
-      currentTeams: state.currentTeams,
-      candidatePool: state.candidatePool,
-      candidateIndex: state.candidateIndex
-    };
-  }
-  // 新しいモードの保存済み結果があれば復元
-  // (この時点ではまだstate.teamAlgoが切り替わる前なので、呼び出し側で処理)
-  state.currentTeams = null;
-  state.candidatePool = [];
-  state.candidateIndex = 0;
-  var area = document.getElementById('team-result-area');
-  if (area) area.innerHTML = '';
-  var rerollBtn = document.getElementById('reroll-btn');
-  if (rerollBtn) rerollBtn.style.display = 'none';
-  updateTeamAlgoDesc();
+  var key = state.teamAlgo + '_' + state.teamMode;
+  state.savedResults[key] = {
+    currentTeams: state.currentTeams,
+    candidatePool: state.candidatePool.slice(),
+    candidateIndex: state.candidateIndex
+  };
 }
 
 function restoreTeamResult() {
+  // 新しいモードキーで保存済み結果があれば復元
   var key = state.teamAlgo + '_' + state.teamMode;
   var saved = state.savedResults[key];
-  if (!saved) return;
-  state.currentTeams = saved.currentTeams;
-  state.candidatePool = saved.candidatePool;
-  state.candidateIndex = saved.candidateIndex;
-  renderTeamResult();
-  var rerollBtn = document.getElementById('reroll-btn');
-  if (rerollBtn && state.candidatePool.length > 0) rerollBtn.style.display = '';
+  if (saved && saved.currentTeams) {
+    state.currentTeams = saved.currentTeams;
+    state.candidatePool = saved.candidatePool;
+    state.candidateIndex = saved.candidateIndex;
+  } else {
+    state.currentTeams = null;
+    state.candidatePool = [];
+    state.candidateIndex = 0;
+  }
+  // DOM更新（チーム分けページが表示中の場合のみ）
+  var area = document.getElementById('team-result-area');
+  if (area) {
+    if (state.currentTeams) {
+      renderTeamResult();
+      var rerollBtn = document.getElementById('reroll-btn');
+      if (rerollBtn) rerollBtn.style.display = '';
+    } else {
+      area.innerHTML = '';
+      var rerollBtn = document.getElementById('reroll-btn');
+      if (rerollBtn) rerollBtn.style.display = 'none';
+    }
+  }
+  var descEl = document.getElementById('team-algo-desc');
+  if (descEl) updateTeamAlgoDesc();
 }
 
 function saveTeamCfg() {
