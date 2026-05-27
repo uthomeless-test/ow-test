@@ -1763,6 +1763,13 @@ function pairKey(a, b) {
 
 
 
+function teamDetailToggle(el) {
+  var id = el.getAttribute('data-detail-target');
+  if (!id) return;
+  var d = document.getElementById(id);
+  if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
 function renderTeamResult() {
   const area = document.getElementById('team-result-area');
   if (!area) return;
@@ -1786,31 +1793,78 @@ function renderTeamResult() {
     ? '<span style="font-size:11px;color:var(--text3);margin-left:6px">傾斜後実効: A=' + teamEffectiveScoreDisplay(r.teamA) + ' B=' + teamEffectiveScoreDisplay(r.teamB) + '</span>'
     : '';
 
+  // タンク考慮モード時の各プレイヤー傾斜後実効スコア
+  function playerEffectiveScore(x, tankRank) {
+    if (state.teamAlgo !== 'tank') return x.total;
+    var w = tankRank < TANK_WEIGHTS.length ? TANK_WEIGHTS[tankRank] : 0;
+    var pl = state.players.find(function(p){ return String(p.id) === String(x.id); });
+    if (!pl) return x.total;
+    var sc = calcAllScores(pl);
+    return Math.round(x.tank * w + sc.dps.total + sc.sup.total);
+  }
+
   const teamCard = function(team, label, color, bg, sum) {
-    // タンクモード時: プレイヤーをタンクスコア降順にソートして傾斜順位を付与
-    var displayTeam = team.slice().sort(function(a,b){return b.total-a.total;});
-    const tankBadge = function(x, rank) {
-      if (state.teamAlgo === 'tank') {
-        var w = rank < TANK_WEIGHTS.length ? TANK_WEIGHTS[rank] : 0;
-        var weighted = Math.round(x.tank * w);
-        return '<span style="font-size:10px;color:var(--warn);font-weight:600;margin-left:4px">' + weighted + '(' + (w*100).toFixed(0) + '%)</span>';
+    // 総合力降順で表示
+    var displayTeam = team.slice().sort(function(a,b){ return b.total - a.total; });
+    // タンクモード: タンクスコア降順で傾斜順位マップを作成
+    var tankRankMap = {};
+    if (state.teamAlgo === 'tank') {
+      team.slice().sort(function(a,b){ return b.tank - a.tank; }).forEach(function(x,i){
+        tankRankMap[String(x.id)] = i;
+      });
+    }
+    // 実効合計
+    var effSum = displayTeam.reduce(function(s,x){
+      return s + playerEffectiveScore(x, tankRankMap[String(x.id)] !== undefined ? tankRankMap[String(x.id)] : 0);
+    }, 0);
+    var headerScore = state.teamAlgo === 'tank' ? Math.round(effSum) : sum;
+
+    var rows = displayTeam.map(function(x) {
+      var tankRank = tankRankMap[String(x.id)] !== undefined ? tankRankMap[String(x.id)] : 0;
+      var effScore = playerEffectiveScore(x, tankRank);
+      var pl = state.players.find(function(p){ return String(p.id) === String(x.id); });
+      var sc = pl ? calcAllScores(pl) : null;
+      var detailId = 'td-' + String(x.id).replace(/-/g,'') + label.replace(/[^A-Za-z]/g,'');
+      var detailHtml = '';
+      if (sc) {
+        var w = state.teamAlgo === 'tank' ? (tankRank < TANK_WEIGHTS.length ? TANK_WEIGHTS[tankRank] : 0) : 1.0;
+        var tankLine = state.teamAlgo === 'tank'
+          ? sc.tank.total + ' × ' + (w*100).toFixed(0) + '% = ' + Math.round(sc.tank.total * w)
+          : String(sc.tank.total);
+        detailHtml =
+          '<div id="' + detailId + '" style="display:none;padding:6px 10px 8px;background:var(--bg3);border-top:1px solid var(--border);font-size:11px">' +
+            '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--tank-color)">' +
+              '<span>タンク</span><span>' + tankLine + '</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--dps-color)">' +
+              '<span>ダメージ</span><span>' + sc.dps.total + '</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--sup-color)">' +
+              '<span>サポート</span><span>' + sc.sup.total + '</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--border);margin-top:3px;font-weight:600">' +
+              '<span style="color:var(--text2)">実効合計</span>' +
+              '<span style="color:var(--accent)">' + effScore + '</span>' +
+            '</div>' +
+          '</div>';
       }
-      return '';
-    };
+      return '<div draggable="true" data-pid="' + x.id + '" data-team="' + label + '" class="team-member" ' +
+        'style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;overflow:hidden">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;cursor:pointer" ' +
+          'data-detail-target="' + detailId + '" onclick="teamDetailToggle(this)">' +
+          '<span style="display:flex;align-items:center;gap:5px"><strong>' + x.name + '</strong>' +
+          '<span style="font-size:10px;color:var(--text3)">▼</span></span>' +
+          '<span style="color:var(--text3);font-size:11px">' + effScore + '</span>' +
+        '</div>' +
+        detailHtml +
+        '</div>';
+    }).join('');
+
     return '<div class="card" style="background:' + bg + ';border-color:' + color + '33">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-        '<div style="font-size:15px;font-weight:700;color:' + color + '">' + label + ' (合計: ' + sum + ')</div>' +
+        '<div style="font-size:15px;font-weight:700;color:' + color + '">' + label + ' (合計: ' + headerScore + ')</div>' +
       '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:4px">' +
-        displayTeam.map(function(x, rank) {
-          return '<div draggable="true" data-pid="' + x.id + '" data-team="' + label + '" ' +
-            'style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);cursor:grab;font-size:13px" ' +
-            'class="team-member">' +
-            '<span><strong>' + x.name + '</strong>' + tankBadge(x, rank) + '</span>' +
-            '<span style="color:var(--text3);font-size:11px">' + x.total + '</span>' +
-            '</div>';
-        }).join('') +
-      '</div></div>';
+      '<div style="display:flex;flex-direction:column;gap:4px">' + rows + '</div></div>';
   };
 
   area.innerHTML =
