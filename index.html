@@ -235,11 +235,11 @@
   .howto-table td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
   .howto-table tr:last-child td { border-bottom: none; }
 
-  .lock-btn { font-size:13px; cursor:pointer; padding:0 4px; background:none; border:none; line-height:1; color:var(--text3); transition:color 0.1s; flex-shrink:0; }
-  .lock-btn:hover { color:var(--accent); }
-  .lock-btn.locked { color:var(--warn); }
-  .player-card.locked-card { opacity:0.75; }
-  .player-card.locked-card .player-card-body { pointer-events:none; }
+  .lock-btn { font-size:11px; font-weight:600; cursor:pointer; padding:3px 8px; border-radius:4px; border:1px solid var(--border); background:var(--success-bg); color:var(--success); line-height:1.4; transition:all 0.12s; flex-shrink:0; display:inline-flex; align-items:center; gap:3px; }
+  .lock-btn:hover { opacity:0.8; }
+  .lock-btn.locked { background:var(--danger-bg); color:var(--danger); border-color:#fecaca; }
+  .player-card.locked-card .player-card-header { background:var(--danger-bg); border-bottom-color:#fecaca; }
+  .player-card.locked-card .player-card-body { pointer-events:none; opacity:0.6; }
 
   @media (max-width: 720px) {
     .app { grid-template-columns: 1fr; }
@@ -312,6 +312,8 @@
     <button class="nav-btn" onclick="showPage('cfg-category',this)">カテゴリ Bonus</button>
     <div class="nav-section">データ</div>
     <button class="nav-btn" onclick="clearSave()" style="color:var(--danger)">🗑 保存データ削除</button>
+    <div class="nav-section">リンク</div>
+    <a class="nav-btn" href="manual.html" target="_blank" style="text-decoration:none">🤖 Botの使い方</a>
   </nav>
 
   <main class="main">
@@ -941,7 +943,7 @@ function renderPlayers() {
         '<span class="player-score-total">' + sc.total + '</span>' +
         '<button class="copy-btn" onclick="copyPlayerScore(\'' + p.id + '\',this)">スコアコピー</button>' +
         '<button class="copy-btn" onclick="showTextExport(\'' + p.id + '\')" style="margin-left:2px">テキスト出力</button>' +
-        '<button class="lock-btn' + (isLocked ? ' locked' : '') + '" onclick="toggleLock(\'' + p.id + '\')" title="' + (isLocked ? 'ロック解除' : 'ロック') + '">' + (isLocked ? '🔒' : '🔓') + '</button>' +
+        '<button class="lock-btn' + (isLocked ? ' locked' : '') + '" onclick="toggleLock(\'' + p.id + '\')">' + (isLocked ? '🔒 編集不可' : '🔓 編集中') + '</button>' +
         '<button class="btn btn-danger btn-sm" onclick="removePlayer(\'' + p.id + '\')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
       '</div>' +
       '<div class="player-card-body">' +

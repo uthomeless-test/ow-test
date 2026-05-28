@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OW Custom Bot 説明書</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface2: #f0f2f5;
+    --border: #e2e6ed;
+    --accent: #e67e00;
+    --accent2: #0078d4;
+    --text: #1a2030;
+    --muted: #6b7690;
+    --danger: #d32f2f;
+    --success: #2e7d32;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, #ffffff 0%, #f5f6f8 50%, #eef2f8 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 24px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(230,126,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-block;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent);
+    border: 1px solid rgba(249,158,26,0.3);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(32px, 6vw, 52px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero-sub {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Layout */
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Command table */
+  .cmd-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .cmd-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    align-items: start;
+  }
+  .cmd-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .cmd-desc {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Steps */
+  .steps {
+    display: grid;
+    gap: 12px;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 16px;
+    align-items: start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .step-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    padding-top: 2px;
+  }
+  .step-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .step-body {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .step-body strong { color: var(--text); }
+
+  /* BAN rule */
+  .ban-rule {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  @media (max-width: 600px) {
+    .ban-rule { grid-template-columns: 1fr; }
+    .cmd-row { grid-template-columns: 1fr; }
+  }
+  .ban-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    border-top: 2px solid;
+  }
+  .ban-card.ok { border-color: var(--success); }
+  .ban-card.clash { border-color: var(--danger); }
+  .ban-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .ban-card.ok .ban-card-title { color: var(--success); }
+  .ban-card.clash .ban-card-title { color: var(--danger); }
+  .ban-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .ban-card strong { color: var(--text); }
+
+  /* Trouble table */
+  .trouble-grid { display: grid; gap: 8px; }
+  .trouble-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .trouble-q {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .trouble-a {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .trouble-a code {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--accent2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: monospace;
+  }
+
+  /* Map list */
+  .map-category { margin-bottom: 20px; }
+  .map-category-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 8px;
+  }
+  .map-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .map-tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  /* Hero list */
+  .role-section { margin-bottom: 20px; }
+  .role-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .role-title.tank { color: #c62828; }
+  .role-title.damage { color: #e65100; }
+  .role-title.support { color: #1b5e20; }
+  .hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .hero-tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* VC info */
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: 6px;
+    padding: 16px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .info-box strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">Discord Bot</div>
+  <h1>OW Custom <span>Bot</span></h1>
+  <p class="hero-sub">Overwatch カスタムマッチ 進行管理ボット</p>
+</div>
+
+<div class="container">
+
+  <!-- コマンド一覧 -->
+  <div class="section">
+    <div class="section-title">コマンド一覧</div>
+    <div class="cmd-grid">
+      <div class="cmd-row"><div class="cmd-name">/startgame</div><div class="cmd-desc">セット開始。先攻チームを選択します</div></div>
+      <div class="cmd-row"><div class="cmd-name">/reset</div><div class="cmd-desc">全リセット（セッション・履歴・セット番号）。すぐ /startgame できます</div></div>
+      <div class="cmd-row"><div class="cmd-name">/reopen</div><div class="cmd-desc">BANの入力画面を誤って閉じた場合に再入力できるようにします</div></div>
+      <div class="cmd-row"><div class="cmd-name">/restart</div><div class="cmd-desc">現在のゲームを最初からやり直します（スコア・履歴は残ります）</div></div>
+      <div class="cmd-row"><div class="cmd-name">/history</div><div class="cmd-desc">本日使用したステージ・BAN・勝敗の履歴を表示します</div></div>
+      <div class="cmd-row"><div class="cmd-name">/clearhistory</div><div class="cmd-desc">本日の履歴を全消去します</div></div>
+    </div>
+  </div>
+
+  <!-- 試合の流れ -->
+  <div class="section">
+    <div class="section-title">1試合の流れ</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">セット開始</div>
+          <div class="step-body"><code style="background:#1e2330;color:#4fc3f7;padding:1px 6px;border-radius:3px;font-size:13px;">/startgame</code> を実行すると先攻チームの選択画面が出ます。サーバー内の「チームA」「チームB」という名前のVCが自動検出されます。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">ステージ選択</div>
+          <div class="step-body">マップ決定チームがステージを選びます。<strong>カテゴリ選択</strong>・<strong>自由入力</strong>（カタカナ・英語どちらでもOK）・<strong>ランダム選択</strong>（完全ランダム / 未使用マップ / 未使用カテゴリ）から選べます。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">ロールOK</div>
+          <div class="step-body">両チームがロールを確定したら <strong>ロールOK</strong> ボタンを押します。2人押すと次に進みます。同じVCから2人目は押せません。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">BANキャラ選択</div>
+          <div class="step-body">
+            <strong>BANキャラを選択する</strong> ボタンを押すと<strong>自分にだけ見える</strong>選択画面が開きます。両チームが同時に入力します。ロール（Tank / Damage / Support）を選んでキャラを選択し、第一候補・第二候補を決めます。
+            <div class="ban-rule">
+              <div class="ban-card ok">
+                <div class="ban-card-title">被らなかった場合</div>
+                <p>第一候補の<strong>2体がBAN</strong>されます。第二候補は非公開。</p>
+              </div>
+              <div class="ban-card clash">
+                <div class="ban-card-title">被った場合</div>
+                <p>被ったキャラ＋両チームの第二候補が全てBAN。<strong>合計3体</strong>になります。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title">Ready</div>
+          <div class="step-body">準備ができたら <strong>Ready！</strong> ボタンを押します。2人押すとゲームスタートです。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <div class="step-title">試合結果入力</div>
+          <div class="step-body">試合が終わったら勝利チームを選択します。<strong>3勝</strong>したチームがセット勝利となります。途中でやめる場合は <strong>セット終了</strong> ボタンを押します。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- マップ決定順 -->
+  <div class="section">
+    <div class="section-title">マップ決定の順番</div>
+    <div class="info-box">
+      <code>/startgame</code> で選んだチームがGame1のマップ決定チームになります。以降は<strong>ABAB…と自動で交互</strong>になります。セットが終わって <code>/startgame</code> を打ち直すと選び直せます。
+    </div>
+  </div>
+
+  <!-- VC判定 -->
+  <div class="section">
+    <div class="section-title">VC（ボイスチャンネル）判定</div>
+    <div class="info-box">
+      サーバー内に<strong>「チームA」「チームB」</strong>という名前のVCがある場合、ボタンを押した人がどちらのVCにいるかで自動的にチームを判定します。<br><br>
+      VCに入っていない場合や検出できない場合は「チームAとして入力」「チームBとして入力」が表示されるので自己申告できます。
+    </div>
+  </div>
+
+  <!-- トラブル対応 -->
+  <div class="section">
+    <div class="section-title">トラブル対応</div>
+    <div class="trouble-grid">
+      <div class="trouble-row">
+        <div class="trouble-q">BANの入力画面を閉じてしまった</div>
+        <div class="trouble-a"><code>/reopen</code> を実行して再度ボタンを押してください</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-q">入力を間違えた</div>
+        <div class="trouble-a"><code>/restart</code> で現在のゲームの最初からやり直せます</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-q">全部おかしくなった</div>
+        <div class="trouble-a"><code>/reset</code> で全リセット後 <code>/startgame</code> から再開してください</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-q">Botが再起動した</div>
+        <div class="trouble-a">古いボタンは効かなくなります。<code>/reset</code> → <code>/startgame</code> でやり直してください</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- マップ一覧 -->
+  <div class="section">
+    <div class="section-title">マップ一覧</div>
+    <div class="map-category">
+      <div class="map-category-title">Hybrid</div>
+      <div class="map-tags">
+        <span class="map-tag">Eichenwalde</span><span class="map-tag">Hollywood</span><span class="map-tag">King's Row</span><span class="map-tag">Midtown</span><span class="map-tag">Paraíso</span><span class="map-tag">Blizzard World</span><span class="map-tag">Numbani</span>
+      </div>
+    </div>
+    <div class="map-category">
+      <div class="map-category-title">Escort</div>
+      <div class="map-tags">
+        <span class="map-tag">Dorado</span><span class="map-tag">Watchpoint: Gibraltar</span><span class="map-tag">Junkertown</span><span class="map-tag">Route 66</span><span class="map-tag">Circuit Royal</span><span class="map-tag">Havana</span><span class="map-tag">Rialto</span><span class="map-tag">Shambali Monastery</span>
+      </div>
+    </div>
+    <div class="map-category">
+      <div class="map-category-title">Control</div>
+      <div class="map-tags">
+        <span class="map-tag">Busan</span><span class="map-tag">Ilios</span><span class="map-tag">Lijiang Tower</span><span class="map-tag">Oasis</span><span class="map-tag">Nepal</span><span class="map-tag">Antarctic Peninsula</span><span class="map-tag">Samoa</span>
+      </div>
+    </div>
+    <div class="map-category">
+      <div class="map-category-title">Push</div>
+      <div class="map-tags">
+        <span class="map-tag">Colosseo</span><span class="map-tag">Esperança</span><span class="map-tag">New Queen Street</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ヒーロー一覧 -->
+  <div class="section">
+    <div class="section-title">ヒーロー一覧</div>
+    <div class="role-section">
+      <div class="role-title tank">Tank（14体）</div>
+      <div class="hero-tags">
+        <span class="hero-tag">D.Va</span><span class="hero-tag">Doomfist</span><span class="hero-tag">Winston</span><span class="hero-tag">Wrecking Ball</span><span class="hero-tag">Domina</span><span class="hero-tag">Hazard</span><span class="hero-tag">Junker Queen</span><span class="hero-tag">Ramattra</span><span class="hero-tag">Reinhardt</span><span class="hero-tag">Sigma</span><span class="hero-tag">Mauga</span><span class="hero-tag">Orisa</span><span class="hero-tag">Roadhog</span><span class="hero-tag">Zarya</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-title damage">Damage（23体）</div>
+      <div class="hero-tags">
+        <span class="hero-tag">Anran</span><span class="hero-tag">Genji</span><span class="hero-tag">Reaper</span><span class="hero-tag">Tracer</span><span class="hero-tag">Vendetta</span><span class="hero-tag">Venture</span><span class="hero-tag">Bastion</span><span class="hero-tag">Emre</span><span class="hero-tag">Junkrat</span><span class="hero-tag">Mei</span><span class="hero-tag">Soldier: 76</span><span class="hero-tag">Symmetra</span><span class="hero-tag">Torbjörn</span><span class="hero-tag">Echo</span><span class="hero-tag">Freja</span><span class="hero-tag">Pharah</span><span class="hero-tag">Sombra</span><span class="hero-tag">Sierra</span><span class="hero-tag">Ashe</span><span class="hero-tag">Cassidy</span><span class="hero-tag">Hanzo</span><span class="hero-tag">Sojourn</span><span class="hero-tag">Widowmaker</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-title support">Support（14体）</div>
+      <div class="hero-tags">
+        <span class="hero-tag">Ana</span><span class="hero-tag">Baptiste</span><span class="hero-tag">Jetpack Cat</span><span class="hero-tag">Lúcio</span><span class="hero-tag">Zenyatta</span><span class="hero-tag">Brigitte</span><span class="hero-tag">Illari</span><span class="hero-tag">Juno</span><span class="hero-tag">Mizuki</span><span class="hero-tag">Wuyang</span><span class="hero-tag">Kiriko</span><span class="hero-tag">Lifeweaver</span><span class="hero-tag">Mercy</span><span class="hero-tag">Moira</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
