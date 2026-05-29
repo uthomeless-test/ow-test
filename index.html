@@ -235,8 +235,9 @@
   .howto-table td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
   .howto-table tr:last-child td { border-bottom: none; }
 
-  .lock-btn { font-size:11px; font-weight:600; cursor:pointer; padding:3px 8px; border-radius:4px; border:1px solid var(--border); background:var(--success-bg); color:var(--success); line-height:1.4; transition:all 0.12s; flex-shrink:0; white-space:nowrap; }
+  .lock-btn { font-size:14px; cursor:pointer; padding:2px 5px; border-radius:4px; border:1px solid rgba(22,163,74,0.3); background:var(--success-bg); color:var(--success); line-height:1.4; transition:all 0.12s; flex-shrink:0; white-space:nowrap; }
   .lock-btn.locked { background:var(--danger-bg); color:var(--danger); border-color:#fecaca; }
+  .lock-btn.locked:hover { background:var(--warn-bg); color:var(--warn); border-color:rgba(217,119,6,0.3); }
   .player-card.locked-card .player-card-header { background:var(--danger-bg); border-bottom-color:#fecaca; }
   .player-card.locked-card .player-card-body { pointer-events:none; opacity:0.6; }
 
@@ -327,6 +328,8 @@
         <div class="spacer"></div>
         <button class="btn" onclick="loadFromSupabase()">🔄 再読み込み</button>
         <button class="btn" onclick="openImport()">📋 テキストから追加</button>
+        <button class="btn" onclick="exportAllPlayers(this)" style="font-size:12px;padding:5px 10px;color:var(--text3)">全員出力</button>
+        <button class="btn" onclick="openBulkImport()" style="font-size:12px;padding:5px 10px;color:var(--text3)">全員入力</button>
         <button class="btn btn-primary" onclick="addPlayer()">＋ プレイヤー追加</button>
       </div>
       <div class="player-grid" id="player-grid"></div>
@@ -944,8 +947,8 @@ function renderPlayers() {
         '<button class="copy-btn" onclick="showTextExport(\'' + p.id + '\')" style="margin-left:2px">テキスト出力</button>' +
         '<button class="lock-btn' + (isLocked ? ' locked' : '') + '"' +
         ' onclick="toggleLock(\'' + p.id + '\')"' +
-        (isLocked ? ' onmouseenter="this.textContent=\'🔒 解除\'" onmouseleave="this.textContent=\'🔒 編集不可\'"' : '') +
-        '>' + (isLocked ? '🔒 編集不可' : '🔓 編集中') + '</button>' +
+        (isLocked ? ' onmouseenter="this.textContent=\'解除\'" onmouseleave="this.textContent=\'🔒\'"' : '') +
+        '>' + (isLocked ? '🔒' : '🔓') + '</button>' +
         '<button class="btn btn-danger btn-sm" onclick="removePlayer(\'' + p.id + '\')" style="margin-left:4px;padding:3px 8px;">✕</button>' +
       '</div>' +
       '<div class="player-card-body">' +
@@ -1485,6 +1488,64 @@ function showTextExport(id) {
 function copyTextExport(btn) {
   const text = document.getElementById('text-export-area').value;
   navigator.clipboard.writeText(text).then(() => flashCopied(btn));
+}
+
+// ===== BULK EXPORT / IMPORT =====
+const PLAYER_SEPARATOR = '---';
+
+function formatAllPlayers() {
+  var sep = '\n' + '---' + '\n';
+  return state.players.map(function(p) { return formatPlayerText(p); }).join(sep);
+}
+
+function exportAllPlayers(btn) {
+  if (!state.players.length) { alert('プレイヤーがいません'); return; }
+  navigator.clipboard.writeText(formatAllPlayers()).then(function() { flashCopied(btn); });
+}
+
+function openBulkImport() {
+  var modal = document.getElementById('bulk-modal');
+  if (!modal) return;
+  document.getElementById('bulk-modal-title').textContent = '全員入力';
+  document.getElementById('bulk-modal-desc').textContent = '「全員出力」でコピーしたテキストをそのまま貼り付けてください。';
+  document.getElementById('bulk-textarea').value = '';
+  document.getElementById('bulk-error').textContent = '';
+  var footer = document.getElementById('bulk-footer');
+  footer.innerHTML = '';
+  var cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn';
+  cancelBtn.textContent = 'キャンセル';
+  cancelBtn.onclick = function(){ document.getElementById('bulk-modal').classList.remove('open'); };
+  var addBtn = document.createElement('button');
+  addBtn.className = 'btn btn-primary';
+  addBtn.textContent = '全員追加';
+  addBtn.onclick = doBulkImport;
+  footer.appendChild(cancelBtn);
+  footer.appendChild(addBtn);
+  modal.classList.add('open');
+}
+
+function doBulkImport() {
+  var textarea = document.getElementById('bulk-textarea');
+  if (!textarea) return;
+  var text = textarea.value.trim();
+  if (!text) return;
+  var sep = '---';
+  var lines = text.split(sep);
+  lines.forEach(function(block) {
+    block = block.trim();
+    if (!block) return;
+    var parsed = parseImportText(block);
+    var id = genUUID();
+    state.nextId++;
+    var player = { id: id, name: parsed.name || ('Player ' + state.nextId), rankIdx: parsed.rankIdx, ratings: parsed.ratings };
+    state.players.push(player);
+    state.participants[String(id)] = true;
+    savePlayerToSupabase(player);
+  });
+  renderPlayers();
+  renderSummary();
+  document.getElementById('bulk-modal').classList.remove('open');
 }
 
 // ===== COPY =====
@@ -2280,6 +2341,22 @@ loadFromSupabase().then(function() {
           <button class="btn" onclick="document.getElementById('text-export-modal').classList.remove('open')">閉じる</button>
           <button class="btn btn-primary" onclick="copyTextExport(this)">📋 コピー</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Export/Import Modal -->
+  <div class="import-overlay" id="bulk-modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="import-modal">
+      <div class="import-modal-header">
+        <div class="import-modal-title" id="bulk-modal-title">全員出力</div>
+        <button class="modal-close" onclick="document.getElementById('bulk-modal').classList.remove('open')">✕</button>
+      </div>
+      <div class="import-modal-body">
+        <div class="import-desc" id="bulk-modal-desc"></div>
+        <textarea class="import-textarea" id="bulk-textarea" style="height:240px"></textarea>
+        <div class="import-error" id="bulk-error"></div>
+        <div class="import-footer" id="bulk-footer"></div>
       </div>
     </div>
   </div>
