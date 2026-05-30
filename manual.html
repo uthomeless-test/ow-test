@@ -303,9 +303,11 @@
     <div class="cmd-grid">
       <div class="cmd-row"><div class="cmd-name">/startgame</div><div class="cmd-desc">セット開始。先攻チームを選択します</div></div>
       <div class="cmd-row"><div class="cmd-name">/reset</div><div class="cmd-desc">全リセット（セッション・履歴・セット番号）。すぐ /startgame できます</div></div>
-      <div class="cmd-row"><div class="cmd-name">/reopen</div><div class="cmd-desc">BANの入力画面を誤って閉じた場合に再入力できるようにします</div></div>
       <div class="cmd-row"><div class="cmd-name">/restart</div><div class="cmd-desc">現在のゲームを最初からやり直します（スコア・履歴は残ります）</div></div>
+      <div class="cmd-row"><div class="cmd-name">/reopen</div><div class="cmd-desc">BANの入力画面を誤って閉じた場合に再入力できるようにします</div></div>
+      <div class="cmd-row"><div class="cmd-name">/fixscore</div><div class="cmd-desc">スコアを直接修正します（例: /fixscore a:1 b:2）</div></div>
       <div class="cmd-row"><div class="cmd-name">/history</div><div class="cmd-desc">本日使用したステージ・BAN・勝敗の履歴を表示します</div></div>
+      <div class="cmd-row"><div class="cmd-name">/loadhistory</div><div class="cmd-desc">/historyの出力をそのまま貼り付けて履歴を復元しゲームを再開します</div></div>
       <div class="cmd-row"><div class="cmd-name">/clearhistory</div><div class="cmd-desc">本日の履歴を全消去します</div></div>
     </div>
   </div>
@@ -325,14 +327,14 @@
         <div class="step-num">2</div>
         <div>
           <div class="step-title">ステージ選択</div>
-          <div class="step-body">マップ決定チームがステージを選びます。<strong>カテゴリ選択</strong>・<strong>自由入力</strong>（カタカナ・英語どちらでもOK）・<strong>ランダム選択</strong>（完全ランダム / 未使用マップ / 未使用カテゴリ）から選べます。</div>
+          <div class="step-body">マップ決定チームがステージを選びます。<strong>カテゴリ選択</strong>・<strong>自由入力</strong>（カタカナ・英語どちらでもOK）・<strong>ランダム選択</strong>（完全ランダム / 未使用マップ / 未使用カテゴリ）から選べます。カテゴリを選んだ後はそのカテゴリ内からランダム選択もできます。</div>
         </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
         <div>
           <div class="step-title">ロールOK</div>
-          <div class="step-body">両チームがロールを確定したら <strong>ロールOK</strong> ボタンを押します。2人押すと次に進みます。同じVCから2人目は押せません。</div>
+          <div class="step-body">両チームがロールを確定したら <strong>ロールOK</strong> ボタンを押します。2人押すと次に進みます。同じVCから2人目は押せません。管理者は <strong>強制確定</strong> ボタンで1人でも次に進めます。</div>
         </div>
       </div>
       <div class="step">
@@ -358,7 +360,7 @@
         <div class="step-num">5</div>
         <div>
           <div class="step-title">Ready</div>
-          <div class="step-body">準備ができたら <strong>Ready！</strong> ボタンを押します。2人押すとゲームスタートです。</div>
+          <div class="step-body">準備ができたら <strong>Ready！</strong> ボタンを押します。2人押すとゲームスタートです。管理者は <strong>強制確定</strong> ボタンで1人でも進められます。</div>
         </div>
       </div>
       <div class="step">
@@ -401,12 +403,16 @@
         <div class="trouble-a"><code>/restart</code> で現在のゲームの最初からやり直せます</div>
       </div>
       <div class="trouble-row">
+        <div class="trouble-q">スコアがおかしい</div>
+        <div class="trouble-a"><code>/fixscore a:1 b:2</code> のように直接スコアを修正できます</div>
+      </div>
+      <div class="trouble-row">
         <div class="trouble-q">全部おかしくなった</div>
         <div class="trouble-a"><code>/reset</code> で全リセット後 <code>/startgame</code> から再開してください</div>
       </div>
       <div class="trouble-row">
         <div class="trouble-q">Botが再起動した</div>
-        <div class="trouble-a">古いボタンは効かなくなります。<code>/reset</code> → <code>/startgame</code> でやり直してください</div>
+        <div class="trouble-a">古いボタンは効かなくなります。<code>/loadhistory</code> で履歴を貼り付けて復元するか、<code>/reset</code> → <code>/startgame</code> でやり直してください</div>
       </div>
     </div>
   </div>
@@ -435,7 +441,13 @@
     <div class="map-category">
       <div class="map-category-title">Push</div>
       <div class="map-tags">
-        <span class="map-tag">Colosseo</span><span class="map-tag">Esperança</span><span class="map-tag">New Queen Street</span>
+        <span class="map-tag">Colosseo</span><span class="map-tag">Esperança</span><span class="map-tag">New Queen Street</span><span class="map-tag">Runasapi</span>
+      </div>
+    </div>
+    <div class="map-category">
+      <div class="map-category-title">Flashpoint</div>
+      <div class="map-tags">
+        <span class="map-tag">Aatlis</span><span class="map-tag">New Junk City</span><span class="map-tag">Suravasa</span>
       </div>
     </div>
   </div>
