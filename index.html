@@ -480,124 +480,255 @@
       <div class="page-title">📖 使い方</div>
       <div class="page-sub">OW カスタムマッチ 強さ計算ツールの操作説明</div>
 
-      <div class="card howto-section">
-        <h3>🎯 このツールについて</h3>
-        <p>プレイヤーのランクとキャラクター習熟度からスコアを算出し、カスタムマッチのチーム分けを均等にするためのツールです。</p>
-        <p>スコアは <strong>ランクポイント + キャラポイント（逓減込み）+ カテゴリBonus</strong> の合計で計算されます。</p>
-        <div class="howto-note">入力データはブラウザに自動保存されます。次回同じブラウザで開くと自動で復元されます。サイドバー下部の「🗑 保存データ削除」で初期化できます。</div>
+      <!-- クイックナビ -->
+      <div class="card" style="margin-bottom:1rem;padding:0.875rem 1.25rem">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:0.625rem">このページの内容</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <a href="#howto-about"    style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">① ツール概要</a>
+          <a href="#howto-player"   style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">② プレイヤー入力</a>
+          <a href="#howto-rating"   style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">③ 評価の目安</a>
+          <a href="#howto-import"   style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">④ テキスト入力</a>
+          <a href="#howto-buttons"  style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">⑤ ボタン一覧</a>
+          <a href="#howto-teams"    style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">⑥ チーム分け</a>
+          <a href="#howto-settings" style="font-size:12px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 10px;border-radius:20px;">⑦ 設定</a>
+        </div>
       </div>
 
-      <div class="card howto-section">
-        <h3>👤 プレイヤーの追加・入力</h3>
+      <!-- ① ツール概要 -->
+      <div id="howto-about" class="card howto-section">
+        <h3>① このツールについて</h3>
+        <p>プレイヤーのランクとキャラクター習熟度からスコアを算出し、カスタムマッチのチーム分けを均等にするためのツールです。</p>
+        <p>スコアは以下の3要素の合計で計算されます：</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:10px 0">
+          <div style="background:var(--accent-light);border-radius:var(--radius);padding:10px 12px">
+            <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">① ランクポイント</div>
+            <div style="font-size:12px;color:var(--text2)">ロール別のランク（Bronze〜Champion）から算出</div>
+          </div>
+          <div style="background:var(--purple-bg);border-radius:var(--radius);padding:10px 12px">
+            <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:4px">② キャラポイント（逓減あり）</div>
+            <div style="font-size:12px;color:var(--text2)">評価の高いキャラから順に、逓減率をかけて合計</div>
+          </div>
+          <div style="background:var(--success-bg);border-radius:var(--radius);padding:10px 12px">
+            <div style="font-size:11px;font-weight:700;color:var(--success);margin-bottom:4px">③ カテゴリBonus</div>
+            <div style="font-size:12px;color:var(--text2)">Dive・Rush等のカテゴリ内に評価4以上が1体以上で加算</div>
+          </div>
+        </div>
+        <div class="howto-note">⚡ 入力データは<strong>サーバー（Supabase）に自動保存</strong>されます。同じURLを開けば誰でもリアルタイムで同期されます。自分だけのデータを消したい場合はプレイヤーカードの ✕ を使ってください。全削除は管理者パスワードが必要です。</div>
+      </div>
+
+      <!-- ② プレイヤー入力 -->
+      <div id="howto-player" class="card howto-section">
+        <h3>② プレイヤーの追加・入力</h3>
         <div class="howto-steps">
           <div class="howto-step">
             <div class="step-num">1</div>
-            <div class="step-body"><strong>「＋ プレイヤー追加」</strong>ボタンでカードを追加します。</div>
+            <div class="step-body">右上の<strong>「＋ プレイヤー追加」</strong>ボタンでカードを追加します。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">2</div>
-            <div class="step-body">名前部分をクリックすると編集できます。確定は <strong>Enter</strong> または外側をクリック。</div>
+            <div class="step-body">カード上部の名前欄をクリックして名前を入力。<strong>Enter</strong> または外側クリックで確定します。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">3</div>
-            <div class="step-body"><strong>タンク・ダメージ・サポート</strong>それぞれのランクをプルダウンで選択します。ロールによってランクが異なる場合も個別に設定できます。</div>
+            <div class="step-body"><strong>タンク・ダメージ・サポート</strong>それぞれのランクをプルダウンで選択します。ロール間でランクが異なる場合も個別に設定できます。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">4</div>
-            <div class="step-body">各キャラクターの評価を <strong>1〜7</strong> で入力します。デフォルトは全キャラ1（出さない）です。</div>
+            <div class="step-body">各キャラクターの評価を <strong>1〜7</strong> のボタンで入力します。デフォルトは全キャラ 1（使わない）です。<strong>使えるキャラを中心に 3 以上</strong>を入力するのがポイントです。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">5</div>
+            <div class="step-body">入力するとスコアがリアルタイムで更新されます。カードヘッダー右端の数字が<strong>総合スコア</strong>です。</div>
           </div>
         </div>
-        <table class="howto-table" style="margin-top:12px">
-          <thead><tr><th>評価</th><th>意味</th><th style="text-align:right">ポイント</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td>使えない / 出さない（デフォルト）</td><td style="text-align:right">0</td></tr>
-            <tr><td>2</td><td>一応触れる</td><td style="text-align:right">2</td></tr>
-            <tr><td>3</td><td>状況次第で出す</td><td style="text-align:right">10</td></tr>
-            <tr><td>4</td><td>状況次第で積極採用</td><td style="text-align:right">25</td></tr>
-            <tr><td>5</td><td>強く使える / よく使う</td><td style="text-align:right">30</td></tr>
-            <tr><td>6</td><td>次点メイン</td><td style="text-align:right">35</td></tr>
-            <tr><td>7</td><td>メインピック</td><td style="text-align:right">40</td></tr>
-          </tbody>
-        </table>
-        <div class="howto-note">評価1・2のキャラはポイントが低いため、使えるキャラを中心に入力すればOKです。キャラはカテゴリ別に分類されています。⠿ ハンドルをドラッグして別カテゴリに移動させることもできます。</div>
+        <div class="howto-note">🔒 カードヘッダーの鍵アイコンをクリックすると<strong>ロック</strong>できます。ロック中はそのプレイヤーのデータを誤って変更できなくなります（チーム分けには参加できます）。</div>
       </div>
 
-      <div class="card howto-section">
-        <h3>📋 テキストから追加</h3>
-        <p>「テキストから追加」ボタンを使うと、テキストを貼り付けてプレイヤーを一括入力できます。「テキスト出力」で出力したテキストをそのまま貼り付ければ再インポートできます。</p>
-        <p>フォーマット例：</p>
-        <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-family:monospace;font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.8">
+      <!-- ③ 評価の目安 -->
+      <div id="howto-rating" class="card howto-section">
+        <h3>③ キャラ評価の目安</h3>
+        <p>各キャラの「使いこなせる度合い」を 1〜7 で入力します。<strong>評価 1・2 はほぼスコアに影響しない</strong>ため、3 以上のキャラを重点的に入力すれば十分です。</p>
+        <table class="howto-table" style="margin-top:10px">
+          <thead><tr><th style="width:44px">評価</th><th>目安・意味</th><th style="text-align:right;width:80px">ポイント</th><th style="width:120px">対象</th></tr></thead>
+          <tbody>
+            <tr><td style="text-align:center;font-weight:700">1</td><td>使えない / 出さない（デフォルト）</td><td style="text-align:right;color:var(--text3)">0</td><td style="font-size:11px;color:var(--text3)">入力不要</td></tr>
+            <tr><td style="text-align:center;font-weight:700">2</td><td>一応触れる程度</td><td style="text-align:right;color:var(--text3)">2</td><td style="font-size:11px;color:var(--text3)">入力不要でもOK</td></tr>
+            <tr><td style="text-align:center;font-weight:700">3</td><td>状況次第で出せる</td><td style="text-align:right">10</td><td style="font-size:11px;color:var(--text2)">サブピック候補</td></tr>
+            <tr><td style="text-align:center;font-weight:700">4</td><td>状況次第で積極採用できる</td><td style="text-align:right">25</td><td style="font-size:11px;color:var(--text2)">安定した選択肢</td></tr>
+            <tr><td style="text-align:center;font-weight:700">5</td><td>強く使える / よく使う</td><td style="text-align:right">30</td><td style="font-size:11px;color:var(--text2)">得意キャラ</td></tr>
+            <tr><td style="text-align:center;font-weight:700">6</td><td>次点メイン（サブメイン）</td><td style="text-align:right">35</td><td style="font-size:11px;color:var(--text2)">主力の一人</td></tr>
+            <tr><td style="text-align:center;font-weight:700;color:var(--accent)">7</td><td>メインピック（最も自信あり）</td><td style="text-align:right;color:var(--accent);font-weight:700">40</td><td style="font-size:11px;color:var(--accent);font-weight:600">メインキャラ</td></tr>
+          </tbody>
+        </table>
+        <div class="howto-note">📌 キャラはカテゴリ別（Dive・Rush・Poke など）に表示されています。<strong>⠿ ドラッグハンドル</strong>を掴んで別カテゴリへ移動させることもできます（設定 → カテゴリ Bonus からも管理可能）。</div>
+      </div>
+
+      <!-- ④ テキストから追加 -->
+      <div id="howto-import" class="card howto-section">
+        <h3>④ テキストからプレイヤーを追加</h3>
+        <p>「📋 テキストから追加」ボタンを使うと、テキストを貼り付けてプレイヤーを素早く入力できます。Discordや他のメモからコピーしてそのまま貼り付けられます。</p>
+        <p>「テキスト出力」で出したテキストをそのまま貼り付ければ<strong>再インポート</strong>もできます。</p>
+
+        <div style="margin:10px 0 6px;font-size:12px;font-weight:600;color:var(--text2)">フォーマット例</div>
+        <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px;font-family:monospace;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:2;border-left:3px solid var(--accent)">
           名前: 田中<br>
           タンク: Gold 5　ダメージ: Master 5　サポート: Platinum 3<br>
-          アナ: 7　キリコ: 6　バティスト: 5　ゲンジ: 4　トレーサー: 3
+          アナ: 7　キリコ: 6　バティスト: 5<br>
+          ゲンジ: 4　トレーサー: 3　ソルジャー: 5
         </div>
-        <div class="howto-note">名前・ランクは省略可能。評価2以上のキャラのみ書けばOKです。1行にスペース区切りで並べても認識されます。キャラ名は略称でも可（例: ソルジャー: 5、ヴェン: 3）。</div>
-      </div>
 
-      <div class="card howto-section">
-        <h3>🔘 ボタンの説明</h3>
         <table class="howto-table">
-          <thead><tr><th>ボタン</th><th>場所</th><th>内容</th></tr></thead>
+          <thead><tr><th>項目</th><th>ルール</th></tr></thead>
           <tbody>
-            <tr><td>スコアコピー</td><td>プレイヤーカード</td><td>計算後のスコア（タンク / ダメージ / サポート / 総合）をクリップボードにコピーします。Discordへの貼り付けに使います。</td></tr>
-            <tr><td>テキスト出力</td><td>プレイヤーカード</td><td>入力内容（ランク・キャラ評価）をテキスト形式で表示します。「テキストから追加」にそのまま貼り付けて再インポートできます。</td></tr>
-            <tr><td>✕</td><td>プレイヤーカード</td><td>そのプレイヤーのカードを削除します。</td></tr>
-            <tr><td>全員コピー</td><td>スコア比較</td><td>全プレイヤーのスコアを表形式でコピーします。</td></tr>
-            <tr><td>詳細</td><td>スコア比較</td><td>ランクPt・キャラPt・カテゴリBonusの内訳を確認できます。</td></tr>
+            <tr><td>名前</td><td><code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">名前: ○○</code> の形式。省略すると「プレイヤー N」になります。</td></tr>
+            <tr><td>ランク</td><td><code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">タンク: Gold 5</code> の形式。省略可能。</td></tr>
+            <tr><td>キャラ評価</td><td><code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">キャラ名: 評価</code> の形式。評価 2 以上のキャラのみ書けばOK。</td></tr>
+            <tr><td>キャラ名</td><td>略称・部分一致でも認識されます（例: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">ヴェン: 3</code>）。</td></tr>
+            <tr><td>区切り</td><td>1行に複数キャラをスペース区切りで並べても認識されます。</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="card howto-section">
-        <h3>🎯 チーム分け</h3>
+      <!-- ⑤ ボタン一覧 -->
+      <div id="howto-buttons" class="card howto-section">
+        <h3>⑤ ボタンの説明</h3>
+        <table class="howto-table">
+          <thead><tr><th style="width:130px">ボタン</th><th style="width:110px">場所</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>📋 テキストから追加</td>
+              <td>プレイヤー入力<br><span style="font-size:10px;color:var(--text3)">ページ上部</span></td>
+              <td>テキストを貼り付けて1人または複数のプレイヤーをまとめて追加します。</td>
+            </tr>
+            <tr>
+              <td>全員出力</td>
+              <td>プレイヤー入力<br><span style="font-size:10px;color:var(--text3)">ページ上部</span></td>
+              <td>全プレイヤーのデータをテキスト形式でまとめて出力します。バックアップや共有に使えます。</td>
+            </tr>
+            <tr>
+              <td>全員入力</td>
+              <td>プレイヤー入力<br><span style="font-size:10px;color:var(--text3)">ページ上部</span></td>
+              <td>「全員出力」で出力したテキストをまとめて貼り付け、全プレイヤーを一括で上書き入力します。</td>
+            </tr>
+            <tr>
+              <td>スコアコピー</td>
+              <td>プレイヤーカード</td>
+              <td>計算後のスコア（タンク / ダメージ / サポート / 総合）をクリップボードにコピーします。Discord への貼り付けに便利です。</td>
+            </tr>
+            <tr>
+              <td>テキスト出力</td>
+              <td>プレイヤーカード</td>
+              <td>そのプレイヤーの入力内容（ランク・キャラ評価）をテキスト形式で表示します。「テキストから追加」にそのまま貼り付けて再インポートできます。</td>
+            </tr>
+            <tr>
+              <td>✕（削除）</td>
+              <td>プレイヤーカード</td>
+              <td>そのプレイヤーのカードを削除します。サーバーからも削除されます。元に戻せないのでご注意ください。</td>
+            </tr>
+            <tr>
+              <td>📋 全員コピー</td>
+              <td>スコア比較</td>
+              <td>全プレイヤーのスコアを表形式でコピーします。Discord に貼り付けて共有できます。</td>
+            </tr>
+            <tr>
+              <td>詳細</td>
+              <td>スコア比較</td>
+              <td>ランクPt・キャラPt・カテゴリBonus の内訳を確認できます。スコアの根拠を確認したいときに使います。</td>
+            </tr>
+            <tr>
+              <td>🔄 再読み込み</td>
+              <td>プレイヤー入力<br><span style="font-size:10px;color:var(--text3)">ページ上部</span></td>
+              <td>サーバーから最新データを取得します。通常は自動同期されますが、反映されていない場合に使います。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ⑥ チーム分け -->
+      <div id="howto-teams" class="card howto-section">
+        <h3>⑥ チーム分け</h3>
         <p>「🎯 チーム分け」ページで、参加者を選んで自動的にチーム分けができます。</p>
         <div class="howto-steps">
           <div class="howto-step">
             <div class="step-num">1</div>
-            <div class="step-body"><strong>参加者選択</strong>：チェックボックスで今回参加するプレイヤーを選びます。</div>
+            <div class="step-body"><strong>参加者選択</strong>：チェックボックスで今回参加するプレイヤーにチェックを入れます。「全選択」「全解除」も利用できます。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">2</div>
-            <div class="step-body"><strong>人数・アルゴリズム選択</strong>：5v5 / 6v6、総合力均等 / タンク考慮を選びます。</div>
+            <div class="step-body"><strong>人数を選択</strong>：5v5 または 6v6 を選びます。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">3</div>
-            <div class="step-body"><strong>自動チーム分け</strong>ボタンを押すと、戦力が均等になるよう分割されます。</div>
+            <div class="step-body"><strong>アルゴリズムを選択</strong>：「総合力均等」または「タンク考慮」を選びます（下表参照）。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">4</div>
-            <div class="step-body">結果が気に入らない場合は<strong>プレイヤーをドラッグ</strong>して別チームに移動できます。</div>
+            <div class="step-body"><strong>「チーム分け」</strong>ボタンを押すと戦力が均等になるよう自動で分けられます。気に入らない場合は<strong>「🎲 再抽選」</strong>を押します。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">5</div>
-            <div class="step-body"><strong>このチーム分けで決定</strong>を押すと履歴に保存され、次回以降は同じ組み合わせになりにくくなります。</div>
+            <div class="step-body">プレイヤーを<strong>ドラッグ＆ドロップ</strong>して手動で別チームに移動することもできます。</div>
           </div>
           <div class="howto-step">
             <div class="step-num">6</div>
-            <div class="step-body"><strong>Discord用コピー</strong>でチーム結果をDiscordに貼り付けられます。</div>
+            <div class="step-body"><strong>「このチーム分けで決定」</strong>を押すと履歴に保存され、次回以降は同じ組み合わせになりにくくなります。</div>
+          </div>
+          <div class="howto-step">
+            <div class="step-num">7</div>
+            <div class="step-body"><strong>「Discord用コピー」</strong>でチーム結果をテキスト形式でコピーし、Discord に貼り付けられます。</div>
           </div>
         </div>
         <table class="howto-table" style="margin-top:12px">
-          <thead><tr><th>アルゴリズム</th><th>内容</th></tr></thead>
+          <thead><tr><th style="width:130px">アルゴリズム</th><th>内容</th></tr></thead>
           <tbody>
-            <tr><td>総合力均等</td><td>各プレイヤーの総合スコア合計がチーム間で均等になるよう分けます。</td></tr>
-            <tr><td>タンク考慮</td><td>総合力均等に加えて、各チームに「タンクスコアが閾値以上」のプレイヤーが3人以上含まれるよう調整します（BO5のタンク勝ち抜けルール対応）。</td></tr>
+            <tr>
+              <td>総合力均等</td>
+              <td>各プレイヤーの<strong>総合スコア合計</strong>がチーム間で均等になるよう分けます。最も基本的な分け方です。</td>
+            </tr>
+            <tr>
+              <td>タンク考慮</td>
+              <td>総合力均等に加えて、各チームに「タンクスコアが<strong>閾値以上</strong>」のプレイヤーが 3 人以上含まれるよう調整します（BO5 タンク勝ち抜けルール対応）。閾値はチーム分け設定カードから変更できます。</td>
+            </tr>
           </tbody>
         </table>
-        <div class="howto-note">「履歴をリセット」ボタンで履歴をクリアできます。新しいセッションを始める際に使ってください。</div>
+        <div class="howto-note">📜 「履歴をリセット」で過去のチーム分け履歴をクリアできます。新しい日程やシーズンの開始時に使ってください。</div>
       </div>
 
-      <div class="card howto-section">
-        <h3>⚙️ 設定について</h3>
+      <!-- ⑦ 設定について -->
+      <div id="howto-settings" class="card howto-section">
+        <h3>⑦ 設定について</h3>
+        <p>サイドバーの「設定」セクションから各種パラメータを変更できます。スコア計算の仕組みを理解した上で調整してください。</p>
         <table class="howto-table">
-          <thead><tr><th>設定項目</th><th>内容</th></tr></thead>
+          <thead><tr><th style="width:150px">設定項目</th><th>内容と目安</th></tr></thead>
           <tbody>
-            <tr><td>ランクポイント</td><td>各ランクに対応するポイント値。上位帯ほど差が大きくなっています。</td></tr>
-            <tr><td>キャラポイント</td><td>評価1〜7に対応するポイント値。変更可能です。</td></tr>
-            <tr><td>逓減率</td><td>複数キャラのポイントを合算する際の倍率。1体目100%→2体目70%→…と減衰します。「狭く深い」が「広く浅い」を上回るよう設計されています。</td></tr>
-            <tr><td>キャラ環境補正</td><td>特定キャラに係数をかけます。今季強いキャラを×1.2にするなど環境に合わせて調整できます。デフォルト1.0。変更したキャラは黄色でハイライトされます。</td></tr>
-            <tr><td>タンク判定閾値・誤差許容値</td><td>チーム分けページの設定カードから変更できます。タンク判定閾値は「タンク考慮」モードで使用。誤差許容値はスコア差がこの値以内なら多様性を優先します。</td></tr>
-            <tr><td>カテゴリ Bonus</td><td>Dive・Rush・Pokeなどのカテゴリ内に評価4以上のキャラが1体以上いる場合に加算。カテゴリはドラッグで自由に変更できます。</td></tr>
+            <tr>
+              <td>ランクポイント</td>
+              <td>各ランク（Bronze〜Champion）に対応するポイント値。上位帯ほど差が大きく設計されています。変更するとすべてのプレイヤーのスコアに影響します。</td>
+            </tr>
+            <tr>
+              <td>キャラポイント</td>
+              <td>評価 1〜7 に対応するポイント値。デフォルトは 0 / 2 / 10 / 25 / 30 / 35 / 40。評価 7 でも 40pt のため、ランクとのバランスを考慮して設定されています。</td>
+            </tr>
+            <tr>
+              <td>逓減率</td>
+              <td>複数キャラのポイントを合算する際の倍率。ポイントが高い順から適用され、1体目 100% → 2体目 70% → 3体目 50% → ... と減衰します。「1キャラ特化」が「多キャラ広く浅い」を大きく上回らないよう設計されています。</td>
+            </tr>
+            <tr>
+              <td>キャラ環境補正</td>
+              <td>特定キャラのポイントに係数をかけます。今季強いキャラを ×1.2 にするなど、環境メタに合わせて調整できます。デフォルト 1.0（変更なし）。変更したキャラは黄色でハイライトされます。</td>
+            </tr>
+            <tr>
+              <td>ポイント誤差の許容値</td>
+              <td>チーム分けページの設定カードから変更。チームのスコア差がこの値以内なら「戦力均等」とみなし、過去に同じチームにならないよう多様性を優先します。超えた場合は戦力均衡を最優先にします。</td>
+            </tr>
+            <tr>
+              <td>タンク判定閾値</td>
+              <td>チーム分けページの設定カードから変更。「タンク考慮」アルゴリズムで使用します。タンクスコアがこの値以上のプレイヤーを「タンクが張れる人」と判定します。</td>
+            </tr>
+            <tr>
+              <td>カテゴリ Bonus</td>
+              <td>Dive・Rush・Poke などのカテゴリ内に評価 4 以上のキャラが 1 体以上いる場合に加算されるボーナスポイント。カテゴリ設定ページでキャラの分類を変更できます。変更はドラッグ操作でも可能です。</td>
+            </tr>
           </tbody>
         </table>
       </div>
